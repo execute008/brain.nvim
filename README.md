@@ -27,7 +27,7 @@ The more you delegate to AI, the more your problem-solving muscles atrophy. brai
 
 ```lua
 {
-  'omf008/brain.nvim',
+  'execute008/brain.nvim',
   cmd = { 'BrainStart', 'BrainTest', 'BrainHint', 'BrainSubmit', 'BrainSkip' },
   opts = {
     -- Where challenge files are created (one folder per day)
