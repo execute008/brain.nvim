@@ -906,6 +906,214 @@ describe('Trie', () => {
   },
 }
 
+  {
+    name = "Reactive Observable",
+    difficulty = "hard",
+    stub = [==[
+/**
+ * Reactive Observable
+ *
+ * Implement a minimal reactive Observable (inspired by RxJS) with these operators:
+ *
+ * Observable class:
+ * - constructor(subscribeFn) — Takes a function(observer) where observer has next/error/complete
+ * - subscribe(observer) — Starts the observable, returns { unsubscribe: () => void }
+ * - pipe(...operators) — Chains operators, returns a new Observable
+ *
+ * Implement these creation helpers and operators:
+ * - of(...values) — Emits each value synchronously, then completes
+ * - fromArray(arr) — Emits each element, then completes
+ * - map(fn) — Transforms each emitted value
+ * - filter(fn) — Only emits values passing the predicate
+ * - take(n) — Emits only the first n values, then completes
+ * - reduce(fn, seed) — Accumulates values, emits final result on complete
+ */
+
+interface Observer<T> {
+  next(value: T): void;
+  error?(err: any): void;
+  complete?(): void;
+}
+
+interface Subscription {
+  unsubscribe(): void;
+}
+
+type Operator<T, R> = (source: Observable<T>) => Observable<R>;
+
+export class Observable<T> {
+  constructor(private subscribeFn: (observer: Observer<T>) => (() => void) | void) {
+    // YOUR CODE HERE (store subscribeFn)
+  }
+
+  subscribe(observer: Partial<Observer<T>>): Subscription {
+    // YOUR CODE HERE
+    return { unsubscribe: () => {} };
+  }
+
+  pipe<R>(...operators: Operator<any, any>[]): Observable<R> {
+    // YOUR CODE HERE
+    return this as any;
+  }
+}
+
+export function of<T>(...values: T[]): Observable<T> {
+  // YOUR CODE HERE
+  return new Observable(() => {});
+}
+
+export function fromArray<T>(arr: T[]): Observable<T> {
+  // YOUR CODE HERE
+  return new Observable(() => {});
+}
+
+export function map<T, R>(fn: (value: T) => R): Operator<T, R> {
+  // YOUR CODE HERE
+  return (source) => source as any;
+}
+
+export function filter<T>(predicate: (value: T) => boolean): Operator<T, T> {
+  // YOUR CODE HERE
+  return (source) => source;
+}
+
+export function take<T>(count: number): Operator<T, T> {
+  // YOUR CODE HERE
+  return (source) => source;
+}
+
+export function reduce<T, R>(accumulator: (acc: R, value: T) => R, seed: R): Operator<T, R> {
+  // YOUR CODE HERE
+  return (source) => source as any;
+}
+]==],
+    tests = [==[
+import { describe, it, expect, vi } from 'vitest';
+import { Observable, of, fromArray, map, filter, take, reduce } from './challenge';
+
+describe('Reactive Observable', () => {
+  it('of emits values and completes', () => {
+    const next = vi.fn();
+    const complete = vi.fn();
+    of(1, 2, 3).subscribe({ next, complete });
+    expect(next).toHaveBeenCalledTimes(3);
+    expect(next).toHaveBeenNthCalledWith(1, 1);
+    expect(next).toHaveBeenNthCalledWith(2, 2);
+    expect(next).toHaveBeenNthCalledWith(3, 3);
+    expect(complete).toHaveBeenCalledOnce();
+  });
+
+  it('fromArray emits array elements', () => {
+    const values: number[] = [];
+    fromArray([10, 20, 30]).subscribe({ next: v => values.push(v) });
+    expect(values).toEqual([10, 20, 30]);
+  });
+
+  it('map transforms values', () => {
+    const values: number[] = [];
+    of(1, 2, 3).pipe(map((x: number) => x * 10)).subscribe({ next: v => values.push(v) });
+    expect(values).toEqual([10, 20, 30]);
+  });
+
+  it('filter selects values', () => {
+    const values: number[] = [];
+    of(1, 2, 3, 4, 5).pipe(filter((x: number) => x % 2 === 0)).subscribe({ next: v => values.push(v) });
+    expect(values).toEqual([2, 4]);
+  });
+
+  it('take limits emissions', () => {
+    const next = vi.fn();
+    const complete = vi.fn();
+    of(1, 2, 3, 4, 5).pipe(take(3)).subscribe({ next, complete });
+    expect(next).toHaveBeenCalledTimes(3);
+    expect(complete).toHaveBeenCalledOnce();
+  });
+
+  it('reduce accumulates and emits on complete', () => {
+    const next = vi.fn();
+    of(1, 2, 3, 4).pipe(reduce((acc: number, x: number) => acc + x, 0)).subscribe({ next });
+    expect(next).toHaveBeenCalledOnce();
+    expect(next).toHaveBeenCalledWith(10);
+  });
+
+  it('pipe chains multiple operators', () => {
+    const values: number[] = [];
+    of(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+      .pipe(
+        filter((x: number) => x % 2 === 0),
+        map((x: number) => x * 100),
+        take(3)
+      )
+      .subscribe({ next: v => values.push(v) });
+    expect(values).toEqual([200, 400, 600]);
+  });
+
+  it('unsubscribe stops emissions from custom observable', () => {
+    let emitCount = 0;
+    const obs = new Observable<number>((observer) => {
+      let i = 0;
+      const id = setInterval(() => { observer.next(i++); }, 1);
+      return () => clearInterval(id);
+    });
+    const next = vi.fn(() => { emitCount++; });
+    const sub = obs.subscribe({ next });
+    setTimeout(() => sub.unsubscribe(), 50);
+    return new Promise<void>((resolve) => {
+      setTimeout(() => {
+        const count = emitCount;
+        setTimeout(() => {
+          expect(emitCount).toBe(count);
+          resolve();
+        }, 30);
+      }, 80);
+    });
+  });
+
+  it('error propagates to observer', () => {
+    const error = vi.fn();
+    const obs = new Observable<number>((observer) => {
+      observer.next(1);
+      observer.error!(new Error('boom'));
+      observer.next(2);
+    });
+    const next = vi.fn();
+    obs.subscribe({ next, error });
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(error).toHaveBeenCalledOnce();
+  });
+
+  it('of with no arguments just completes', () => {
+    const next = vi.fn();
+    const complete = vi.fn();
+    of().subscribe({ next, complete });
+    expect(next).not.toHaveBeenCalled();
+    expect(complete).toHaveBeenCalledOnce();
+  });
+
+  it('reduce with empty source emits seed', () => {
+    const next = vi.fn();
+    of<number>().pipe(reduce((acc: number, x: number) => acc + x, 42)).subscribe({ next });
+    expect(next).toHaveBeenCalledWith(42);
+  });
+
+  it('stress: large pipeline', () => {
+    const values: number[] = [];
+    fromArray(Array.from({ length: 10000 }, (_, i) => i))
+      .pipe(
+        filter((x: number) => x % 3 === 0),
+        map((x: number) => x / 3),
+        take(100)
+      )
+      .subscribe({ next: v => values.push(v) });
+    expect(values.length).toBe(100);
+    expect(values[0]).toBe(0);
+    expect(values[99]).toBe(99);
+  });
+});
+]==],
+  },
+}
+
 --- Deterministic challenge selection based on date.
 --- Cycles sequentially through challenges using day-of-year.
 function M.get_challenge_for_date(date_str)
