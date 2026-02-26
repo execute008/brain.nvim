@@ -1114,6 +1114,138 @@ describe('Reactive Observable', () => {
   },
 }
 
+  {
+    name = "Topological Sort",
+    difficulty = "medium",
+    stub = [==[
+/**
+ * Topological Sort
+ *
+ * Given a directed acyclic graph (DAG) represented as an adjacency list,
+ * return a valid topological ordering of all nodes.
+ *
+ * If the graph contains a cycle, throw an Error('Cycle detected').
+ *
+ * @param numNodes — number of nodes (labeled 0 to numNodes-1)
+ * @param edges — array of [from, to] pairs meaning "from must come before to"
+ * @returns array of node labels in a valid topological order
+ *
+ * Example:
+ *   topoSort(4, [[0,1],[0,2],[1,3],[2,3]]) => [0,2,1,3] or [0,1,2,3]
+ *
+ * Bonus: Implement Kahn's algorithm (BFS-based) as an alternative.
+ */
+
+export function topoSort(numNodes: number, edges: [number, number][]): number[] {
+  // YOUR CODE HERE
+  return [];
+}
+
+/**
+ * Bonus: Given a list of tasks with dependencies, return a valid execution order.
+ * Each task is { id: string, deps: string[] }.
+ * Throw if there's a circular dependency.
+ */
+export interface Task {
+  id: string;
+  deps: string[];
+}
+
+export function taskOrder(tasks: Task[]): string[] {
+  // YOUR CODE HERE
+  return [];
+}
+]==],
+    tests = [==[
+import { describe, it, expect } from 'vitest';
+import { topoSort, taskOrder } from './challenge';
+
+function isValidTopo(numNodes: number, edges: [number, number][], order: number[]): boolean {
+  if (order.length !== numNodes) return false;
+  const pos = new Map<number, number>();
+  order.forEach((node, i) => pos.set(node, i));
+  if (pos.size !== numNodes) return false;
+  return edges.every(([u, v]) => (pos.get(u)!) < (pos.get(v)!));
+}
+
+describe('Topological Sort', () => {
+  it('simple DAG', () => {
+    const result = topoSort(4, [[0,1],[0,2],[1,3],[2,3]]);
+    expect(isValidTopo(4, [[0,1],[0,2],[1,3],[2,3]], result)).toBe(true);
+  });
+
+  it('linear chain', () => {
+    const result = topoSort(4, [[0,1],[1,2],[2,3]]);
+    expect(result).toEqual([0,1,2,3]);
+  });
+
+  it('no edges', () => {
+    const result = topoSort(3, []);
+    expect(result.sort()).toEqual([0,1,2]);
+  });
+
+  it('single node', () => {
+    expect(topoSort(1, [])).toEqual([0]);
+  });
+
+  it('diamond shape', () => {
+    const edges: [number, number][] = [[0,1],[0,2],[1,3],[2,3]];
+    const result = topoSort(4, edges);
+    expect(isValidTopo(4, edges, result)).toBe(true);
+  });
+
+  it('detects cycle', () => {
+    expect(() => topoSort(3, [[0,1],[1,2],[2,0]])).toThrow('Cycle detected');
+  });
+
+  it('detects self-loop', () => {
+    expect(() => topoSort(2, [[0,0]])).toThrow('Cycle detected');
+  });
+
+  it('complex DAG', () => {
+    const edges: [number, number][] = [[5,2],[5,0],[4,0],[4,1],[2,3],[3,1]];
+    const result = topoSort(6, edges);
+    expect(isValidTopo(6, edges, result)).toBe(true);
+  });
+
+  it('stress: large DAG', () => {
+    const n = 1000;
+    const edges: [number, number][] = [];
+    for (let i = 0; i < n - 1; i++) edges.push([i, i + 1]);
+    const result = topoSort(n, edges);
+    expect(result).toEqual(Array.from({ length: n }, (_, i) => i));
+  });
+});
+
+describe('Task Order', () => {
+  it('simple dependencies', () => {
+    const tasks = [
+      { id: 'build', deps: ['compile'] },
+      { id: 'compile', deps: ['parse'] },
+      { id: 'parse', deps: [] },
+    ];
+    const order = taskOrder(tasks);
+    expect(order.indexOf('parse')).toBeLessThan(order.indexOf('compile'));
+    expect(order.indexOf('compile')).toBeLessThan(order.indexOf('build'));
+  });
+
+  it('no dependencies', () => {
+    const tasks = [{ id: 'a', deps: [] }, { id: 'b', deps: [] }];
+    expect(taskOrder(tasks).sort()).toEqual(['a', 'b']);
+  });
+
+  it('circular dependency throws', () => {
+    const tasks = [
+      { id: 'a', deps: ['b'] },
+      { id: 'b', deps: ['a'] },
+    ];
+    expect(() => taskOrder(tasks)).toThrow();
+  });
+});
+]==],
+  },
+}
+
 --- Deterministic challenge selection based on date.
 --- Cycles sequentially through challenges using day-of-year.
 function M.get_challenge_for_date(date_str)
