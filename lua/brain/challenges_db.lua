@@ -1246,6 +1246,179 @@ describe('Task Order', () => {
   },
 }
 
+  {
+    name = "Async Task Scheduler",
+    difficulty = "hard",
+    stub = [==[
+/**
+ * Async Task Scheduler
+ *
+ * Implement a task scheduler that limits the number of concurrently running async tasks.
+ *
+ * Scheduler class:
+ * - constructor(concurrency: number) — Max number of tasks running at once.
+ * - add(task: () => Promise<T>): Promise<T> — Queues a task. Returns a promise that
+ *   resolves/rejects with the task's result. If under the concurrency limit, starts immediately.
+ *   Otherwise waits until a slot opens.
+ * - waitForAll(): Promise<void> — Resolves when all queued and running tasks are done.
+ * - get pending(): number — Number of tasks waiting in the queue.
+ * - get running(): number — Number of currently executing tasks.
+ *
+ * Tasks must start in FIFO order. If a task rejects, the scheduler continues running
+ * other tasks — the rejection only propagates to that task's returned promise.
+ */
+
+export class AsyncScheduler {
+  constructor(concurrency: number) {
+    // YOUR CODE HERE
+  }
+
+  add<T>(task: () => Promise<T>): Promise<T> {
+    // YOUR CODE HERE
+    return Promise.reject(new Error('Not implemented'));
+  }
+
+  waitForAll(): Promise<void> {
+    // YOUR CODE HERE
+    return Promise.resolve();
+  }
+
+  get pending(): number {
+    // YOUR CODE HERE
+    return 0;
+  }
+
+  get running(): number {
+    // YOUR CODE HERE
+    return 0;
+  }
+}
+]==],
+    tests = [==[
+import { describe, it, expect, vi } from 'vitest';
+import { AsyncScheduler } from './challenge';
+
+const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
+
+describe('Async Task Scheduler', () => {
+  it('runs tasks up to concurrency limit', async () => {
+    const scheduler = new AsyncScheduler(2);
+    let concurrent = 0;
+    let maxConcurrent = 0;
+
+    const makeTask = (ms: number) => () => {
+      concurrent++;
+      maxConcurrent = Math.max(maxConcurrent, concurrent);
+      return delay(ms).then(() => { concurrent--; });
+    };
+
+    scheduler.add(makeTask(50));
+    scheduler.add(makeTask(50));
+    scheduler.add(makeTask(50));
+    scheduler.add(makeTask(50));
+    await scheduler.waitForAll();
+    expect(maxConcurrent).toBe(2);
+  });
+
+  it('returns task result', async () => {
+    const scheduler = new AsyncScheduler(1);
+    const result = await scheduler.add(() => Promise.resolve(42));
+    expect(result).toBe(42);
+  });
+
+  it('propagates rejection to caller', async () => {
+    const scheduler = new AsyncScheduler(2);
+    const p1 = scheduler.add(() => Promise.reject(new Error('boom')));
+    const p2 = scheduler.add(() => Promise.resolve('ok'));
+    await expect(p1).rejects.toThrow('boom');
+    expect(await p2).toBe('ok');
+  });
+
+  it('tasks run in FIFO order', async () => {
+    const scheduler = new AsyncScheduler(1);
+    const order: number[] = [];
+    scheduler.add(async () => { order.push(1); });
+    scheduler.add(async () => { order.push(2); });
+    scheduler.add(async () => { order.push(3); });
+    await scheduler.waitForAll();
+    expect(order).toEqual([1, 2, 3]);
+  });
+
+  it('pending and running counts', async () => {
+    const scheduler = new AsyncScheduler(1);
+    let resolve1!: () => void;
+    const blocker = new Promise<void>(r => { resolve1 = r; });
+
+    scheduler.add(() => blocker);
+    scheduler.add(() => delay(1));
+    scheduler.add(() => delay(1));
+
+    await delay(5);
+    expect(scheduler.running).toBe(1);
+    expect(scheduler.pending).toBe(2);
+
+    resolve1();
+    await scheduler.waitForAll();
+    expect(scheduler.running).toBe(0);
+    expect(scheduler.pending).toBe(0);
+  });
+
+  it('concurrency of 1 is sequential', async () => {
+    const scheduler = new AsyncScheduler(1);
+    const log: string[] = [];
+    scheduler.add(async () => { log.push('a-start'); await delay(20); log.push('a-end'); });
+    scheduler.add(async () => { log.push('b-start'); await delay(10); log.push('b-end'); });
+    await scheduler.waitForAll();
+    expect(log).toEqual(['a-start', 'a-end', 'b-start', 'b-end']);
+  });
+
+  it('high concurrency runs all at once', async () => {
+    const scheduler = new AsyncScheduler(100);
+    let concurrent = 0;
+    let maxConcurrent = 0;
+
+    const tasks = Array.from({ length: 20 }, () =>
+      scheduler.add(async () => {
+        concurrent++;
+        maxConcurrent = Math.max(maxConcurrent, concurrent);
+        await delay(10);
+        concurrent--;
+      })
+    );
+    await Promise.all(tasks);
+    expect(maxConcurrent).toBe(20);
+  });
+
+  it('waitForAll resolves immediately when empty', async () => {
+    const scheduler = new AsyncScheduler(3);
+    await scheduler.waitForAll();
+  });
+
+  it('failed task does not block queue', async () => {
+    const scheduler = new AsyncScheduler(1);
+    const results: string[] = [];
+    const p1 = scheduler.add(async () => { throw new Error('fail'); });
+    scheduler.add(async () => { results.push('done'); });
+    await p1.catch(() => {});
+    await scheduler.waitForAll();
+    expect(results).toEqual(['done']);
+  });
+
+  it('stress: many tasks', async () => {
+    const scheduler = new AsyncScheduler(5);
+    let sum = 0;
+    const promises = Array.from({ length: 100 }, (_, i) =>
+      scheduler.add(async () => { sum += i; return i; })
+    );
+    const results = await Promise.all(promises);
+    expect(results).toEqual(Array.from({ length: 100 }, (_, i) => i));
+    expect(sum).toBe(4950);
+  });
+});
+]==],
+  },
+}
+
 --- Deterministic challenge selection based on date.
 --- Cycles sequentially through challenges using day-of-year.
 function M.get_challenge_for_date(date_str)
