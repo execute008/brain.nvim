@@ -1419,6 +1419,173 @@ describe('Async Task Scheduler', () => {
   },
 }
 
+  {
+    name = "Sliding Window Rate Limiter",
+    difficulty = "medium",
+    stub = [==[
+/**
+ * Sliding Window Rate Limiter
+ *
+ * Implement a rate limiter using the sliding window log algorithm.
+ *
+ * RateLimiter class:
+ * - constructor(maxRequests: number, windowMs: number)
+ *   maxRequests = max allowed in the sliding window
+ *   windowMs = window size in milliseconds
+ *
+ * - tryAcquire(key: string, now?: number): boolean
+ *   Returns true if the request is allowed, false if rate-limited.
+ *   `now` defaults to Date.now() — passing it explicitly makes testing easier.
+ *
+ * - reset(key: string): void
+ *   Clears all history for a key.
+ *
+ * - getRemaining(key: string, now?: number): number
+ *   Returns how many requests are still available in the current window.
+ *
+ * Bonus: Implement a fixed-window counter variant as well.
+ */
+
+export class RateLimiter {
+  constructor(private maxRequests: number, private windowMs: number) {
+    // YOUR CODE HERE
+  }
+
+  tryAcquire(key: string, now?: number): boolean {
+    // YOUR CODE HERE
+    return false;
+  }
+
+  reset(key: string): void {
+    // YOUR CODE HERE
+  }
+
+  getRemaining(key: string, now?: number): number {
+    // YOUR CODE HERE
+    return 0;
+  }
+}
+
+/**
+ * Bonus: Fixed-window counter rate limiter.
+ * Simpler but less smooth — requests at window boundaries can spike to 2x.
+ */
+export class FixedWindowLimiter {
+  constructor(private maxRequests: number, private windowMs: number) {
+    // YOUR CODE HERE
+  }
+
+  tryAcquire(key: string, now?: number): boolean {
+    // YOUR CODE HERE
+    return false;
+  }
+}
+]==],
+    tests = [==[
+import { describe, it, expect } from 'vitest';
+import { RateLimiter, FixedWindowLimiter } from './challenge';
+
+describe('Sliding Window Rate Limiter', () => {
+  it('allows requests under limit', () => {
+    const rl = new RateLimiter(3, 1000);
+    expect(rl.tryAcquire('user1', 0)).toBe(true);
+    expect(rl.tryAcquire('user1', 100)).toBe(true);
+    expect(rl.tryAcquire('user1', 200)).toBe(true);
+  });
+
+  it('blocks requests over limit', () => {
+    const rl = new RateLimiter(2, 1000);
+    expect(rl.tryAcquire('u', 0)).toBe(true);
+    expect(rl.tryAcquire('u', 100)).toBe(true);
+    expect(rl.tryAcquire('u', 200)).toBe(false);
+  });
+
+  it('allows again after window slides', () => {
+    const rl = new RateLimiter(2, 1000);
+    expect(rl.tryAcquire('u', 0)).toBe(true);
+    expect(rl.tryAcquire('u', 500)).toBe(true);
+    expect(rl.tryAcquire('u', 800)).toBe(false);
+    expect(rl.tryAcquire('u', 1001)).toBe(true);
+  });
+
+  it('keys are independent', () => {
+    const rl = new RateLimiter(1, 1000);
+    expect(rl.tryAcquire('a', 0)).toBe(true);
+    expect(rl.tryAcquire('b', 0)).toBe(true);
+    expect(rl.tryAcquire('a', 100)).toBe(false);
+    expect(rl.tryAcquire('b', 100)).toBe(false);
+  });
+
+  it('reset clears history', () => {
+    const rl = new RateLimiter(1, 1000);
+    expect(rl.tryAcquire('u', 0)).toBe(true);
+    expect(rl.tryAcquire('u', 100)).toBe(false);
+    rl.reset('u');
+    expect(rl.tryAcquire('u', 200)).toBe(true);
+  });
+
+  it('getRemaining returns correct count', () => {
+    const rl = new RateLimiter(5, 1000);
+    expect(rl.getRemaining('u', 0)).toBe(5);
+    rl.tryAcquire('u', 0);
+    rl.tryAcquire('u', 100);
+    expect(rl.getRemaining('u', 200)).toBe(3);
+  });
+
+  it('getRemaining reflects window sliding', () => {
+    const rl = new RateLimiter(2, 1000);
+    rl.tryAcquire('u', 0);
+    rl.tryAcquire('u', 100);
+    expect(rl.getRemaining('u', 500)).toBe(0);
+    expect(rl.getRemaining('u', 1001)).toBe(1);
+    expect(rl.getRemaining('u', 1101)).toBe(2);
+  });
+
+  it('expired entries are cleaned up', () => {
+    const rl = new RateLimiter(3, 100);
+    rl.tryAcquire('u', 0);
+    rl.tryAcquire('u', 50);
+    rl.tryAcquire('u', 99);
+    expect(rl.tryAcquire('u', 100)).toBe(false);
+    expect(rl.tryAcquire('u', 101)).toBe(true);
+  });
+
+  it('stress: rapid requests', () => {
+    const rl = new RateLimiter(100, 1000);
+    let allowed = 0;
+    for (let i = 0; i < 200; i++) {
+      if (rl.tryAcquire('u', i)) allowed++;
+    }
+    expect(allowed).toBe(100);
+  });
+
+  it('single request window', () => {
+    const rl = new RateLimiter(1, 50);
+    expect(rl.tryAcquire('u', 0)).toBe(true);
+    expect(rl.tryAcquire('u', 25)).toBe(false);
+    expect(rl.tryAcquire('u', 51)).toBe(true);
+  });
+});
+
+describe('Fixed Window Limiter', () => {
+  it('allows within window', () => {
+    const rl = new FixedWindowLimiter(2, 1000);
+    expect(rl.tryAcquire('u', 0)).toBe(true);
+    expect(rl.tryAcquire('u', 500)).toBe(true);
+    expect(rl.tryAcquire('u', 999)).toBe(false);
+  });
+
+  it('resets at window boundary', () => {
+    const rl = new FixedWindowLimiter(1, 1000);
+    expect(rl.tryAcquire('u', 0)).toBe(true);
+    expect(rl.tryAcquire('u', 500)).toBe(false);
+    expect(rl.tryAcquire('u', 1000)).toBe(true);
+  });
+});
+]==],
+  },
+}
+
 --- Deterministic challenge selection based on date.
 --- Cycles sequentially through challenges using day-of-year.
 function M.get_challenge_for_date(date_str)
