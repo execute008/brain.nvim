@@ -1586,6 +1586,126 @@ describe('Fixed Window Limiter', () => {
   },
 }
 
+  {
+    name = "Curry Function",
+    difficulty = "medium",
+    stub = [==[
+/**
+ * Curry Function
+ *
+ * Implement a generic `curry` function that transforms a multi-argument function
+ * into a chain of single-argument (or partial-argument) functions.
+ *
+ * Requirements:
+ * - curry(fn) returns a curried version of fn
+ * - The curried function can be called with any number of arguments at each step
+ * - When enough arguments have been collected (>= fn.length), call the original function
+ * - Support placeholder `_` for partial application in any position
+ *
+ * Examples:
+ *   const add = (a: number, b: number, c: number) => a + b + c;
+ *   const curried = curry(add);
+ *   curried(1)(2)(3)    // => 6
+ *   curried(1, 2)(3)    // => 6
+ *   curried(1)(2, 3)    // => 6
+ *   curried(1, 2, 3)    // => 6
+ *
+ * With placeholders:
+ *   curried(_, 2, 3)(1) // => 6
+ *   curried(_, _, 3)(1)(2) // => 6
+ */
+
+export const _ = Symbol('placeholder');
+
+type Placeholder = typeof _;
+
+export function curry(fn: (...args: any[]) => any): (...args: any[]) => any {
+  // YOUR CODE HERE
+  return fn;
+}
+]==],
+    tests = [==[
+import { describe, it, expect } from 'vitest';
+import { curry, _ } from './challenge';
+
+describe('Curry Function', () => {
+  const add3 = (a: number, b: number, c: number) => a + b + c;
+
+  it('basic currying one arg at a time', () => {
+    const curried = curry(add3);
+    expect(curried(1)(2)(3)).toBe(6);
+  });
+
+  it('all args at once', () => {
+    const curried = curry(add3);
+    expect(curried(1, 2, 3)).toBe(6);
+  });
+
+  it('partial args', () => {
+    const curried = curry(add3);
+    expect(curried(1, 2)(3)).toBe(6);
+    expect(curried(1)(2, 3)).toBe(6);
+  });
+
+  it('zero-arg function', () => {
+    const greet = () => 'hello';
+    const curried = curry(greet);
+    expect(curried()).toBe('hello');
+  });
+
+  it('single-arg function', () => {
+    const double = (x: number) => x * 2;
+    const curried = curry(double);
+    expect(curried(5)).toBe(10);
+  });
+
+  it('placeholder in first position', () => {
+    const curried = curry(add3);
+    expect(curried(_, 2, 3)(1)).toBe(6);
+  });
+
+  it('placeholder in middle position', () => {
+    const curried = curry(add3);
+    expect(curried(1, _, 3)(2)).toBe(6);
+  });
+
+  it('multiple placeholders', () => {
+    const curried = curry(add3);
+    expect(curried(_, _, 3)(1)(2)).toBe(6);
+  });
+
+  it('all placeholders', () => {
+    const curried = curry(add3);
+    expect(curried(_, _, _)(1)(2)(3)).toBe(6);
+  });
+
+  it('placeholder filled with partial args', () => {
+    const curried = curry(add3);
+    expect(curried(_, _, 3)(1, 2)).toBe(6);
+  });
+
+  it('preserves function context', () => {
+    const fn = (a: string, b: string) => a + b;
+    const curried = curry(fn);
+    expect(curried('hello, ')('world')).toBe('hello, world');
+  });
+
+  it('stress: many arguments', () => {
+    const sum = (...args: number[]) => {
+      let s = 0; for (const a of args) s += a; return s;
+    };
+    // Create a function with explicit length
+    const sum5 = (a: number, b: number, c: number, d: number, e: number) => a + b + c + d + e;
+    const curried = curry(sum5);
+    expect(curried(1)(2)(3)(4)(5)).toBe(15);
+    expect(curried(1, 2, 3, 4, 5)).toBe(15);
+    expect(curried(1, 2)(3, 4)(5)).toBe(15);
+  });
+});
+]==],
+  },
+}
+
 --- Deterministic challenge selection based on date.
 --- Cycles sequentially through challenges using day-of-year.
 function M.get_challenge_for_date(date_str)
