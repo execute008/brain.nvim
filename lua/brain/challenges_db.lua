@@ -1706,6 +1706,170 @@ describe('Curry Function', () => {
   },
 }
 
+  {
+    name = "Memoize with TTL",
+    difficulty = "medium",
+    stub = [==[
+/**
+ * Memoize with TTL
+ *
+ * Implement a memoization function with time-to-live (TTL) cache expiration.
+ *
+ * memoize(fn, options):
+ * - Caches results keyed by stringified arguments
+ * - `ttl` (ms): cached values expire after this duration
+ * - `maxSize` (optional): max number of cached entries (evict oldest on overflow)
+ *
+ * The returned function also has:
+ * - cache.clear() — manually clear all cached entries
+ * - cache.size — number of currently cached (non-expired) entries
+ * - cache.has(...args) — check if a non-expired cache entry exists for these args
+ *
+ * Expired entries should be lazily cleaned up (on access), not via timers.
+ */
+
+interface MemoizeOptions {
+  ttl: number;
+  maxSize?: number;
+}
+
+interface MemoizedFn<T extends (...args: any[]) => any> {
+  (...args: Parameters<T>): ReturnType<T>;
+  cache: {
+    clear(): void;
+    size: number;
+    has(...args: Parameters<T>): boolean;
+  };
+}
+
+export function memoize<T extends (...args: any[]) => any>(
+  fn: T,
+  options: MemoizeOptions
+): MemoizedFn<T> {
+  // YOUR CODE HERE
+  const noop = (() => fn()) as any;
+  noop.cache = { clear: () => {}, size: 0, has: () => false };
+  return noop;
+}
+]==],
+    tests = [==[
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { memoize } from './challenge';
+
+describe('Memoize with TTL', () => {
+  beforeEach(() => { vi.useFakeTimers(); });
+  afterEach(() => { vi.restoreAllTimers(); });
+
+  it('caches function results', () => {
+    const fn = vi.fn((x: number) => x * 2);
+    const memo = memoize(fn, { ttl: 1000 });
+    expect(memo(5)).toBe(10);
+    expect(memo(5)).toBe(10);
+    expect(fn).toHaveBeenCalledTimes(1);
+  });
+
+  it('different args get different cache entries', () => {
+    const fn = vi.fn((x: number) => x * 2);
+    const memo = memoize(fn, { ttl: 1000 });
+    expect(memo(1)).toBe(2);
+    expect(memo(2)).toBe(4);
+    expect(fn).toHaveBeenCalledTimes(2);
+  });
+
+  it('expires after TTL', () => {
+    const fn = vi.fn((x: number) => x + 1);
+    const memo = memoize(fn, { ttl: 100 });
+    expect(memo(1)).toBe(2);
+    vi.advanceTimersByTime(101);
+    expect(memo(1)).toBe(2);
+    expect(fn).toHaveBeenCalledTimes(2);
+  });
+
+  it('non-expired entries stay cached', () => {
+    const fn = vi.fn((x: number) => x);
+    const memo = memoize(fn, { ttl: 200 });
+    memo(1);
+    vi.advanceTimersByTime(100);
+    memo(1);
+    expect(fn).toHaveBeenCalledTimes(1);
+  });
+
+  it('cache.clear removes all entries', () => {
+    const fn = vi.fn((x: number) => x);
+    const memo = memoize(fn, { ttl: 5000 });
+    memo(1);
+    memo(2);
+    memo.cache.clear();
+    expect(memo.cache.size).toBe(0);
+    memo(1);
+    expect(fn).toHaveBeenCalledTimes(3);
+  });
+
+  it('cache.size reflects non-expired count', () => {
+    const fn = vi.fn((x: number) => x);
+    const memo = memoize(fn, { ttl: 100 });
+    memo(1);
+    memo(2);
+    expect(memo.cache.size).toBe(2);
+    vi.advanceTimersByTime(101);
+    expect(memo.cache.size).toBe(0);
+  });
+
+  it('cache.has checks for non-expired entries', () => {
+    const fn = (x: number) => x;
+    const memo = memoize(fn, { ttl: 100 });
+    memo(42);
+    expect(memo.cache.has(42)).toBe(true);
+    expect(memo.cache.has(99)).toBe(false);
+    vi.advanceTimersByTime(101);
+    expect(memo.cache.has(42)).toBe(false);
+  });
+
+  it('maxSize evicts oldest entry', () => {
+    const fn = vi.fn((x: number) => x);
+    const memo = memoize(fn, { ttl: 5000, maxSize: 2 });
+    memo(1);
+    memo(2);
+    memo(3); // should evict key for arg 1
+    expect(memo.cache.has(1)).toBe(false);
+    expect(memo.cache.has(2)).toBe(true);
+    expect(memo.cache.has(3)).toBe(true);
+  });
+
+  it('multiple arguments as cache key', () => {
+    const fn = vi.fn((a: number, b: string) => `${a}-${b}`);
+    const memo = memoize(fn, { ttl: 1000 });
+    expect(memo(1, 'a')).toBe('1-a');
+    expect(memo(1, 'a')).toBe('1-a');
+    expect(memo(1, 'b')).toBe('1-b');
+    expect(fn).toHaveBeenCalledTimes(2);
+  });
+
+  it('re-caches after expiry with fresh value', () => {
+    let counter = 0;
+    const fn = vi.fn(() => ++counter);
+    const memo = memoize(fn, { ttl: 50 });
+    expect(memo()).toBe(1);
+    vi.advanceTimersByTime(51);
+    expect(memo()).toBe(2);
+    expect(fn).toHaveBeenCalledTimes(2);
+  });
+
+  it('stress: many entries with maxSize', () => {
+    const fn = vi.fn((x: number) => x * x);
+    const memo = memoize(fn, { ttl: 10000, maxSize: 50 });
+    for (let i = 0; i < 200; i++) {
+      memo(i);
+    }
+    expect(memo.cache.size).toBe(50);
+    // oldest should be evicted, newest should remain
+    expect(memo.cache.has(199)).toBe(true);
+    expect(memo.cache.has(0)).toBe(false);
+  });
+});
+]==],
+  },
+
 --- Deterministic challenge selection based on date.
 --- Cycles sequentially through challenges using day-of-year.
 function M.get_challenge_for_date(date_str)
