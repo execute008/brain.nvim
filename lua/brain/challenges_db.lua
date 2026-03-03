@@ -1869,6 +1869,152 @@ describe('Memoize with TTL', () => {
 });
 ]==],
   },
+  {
+    name = "Pipe and Compose",
+    difficulty = "easy",
+    stub = [==[
+/**
+ * Pipe and Compose
+ *
+ * Implement two function composition utilities:
+ *
+ * pipe(...fns) — Returns a function that applies fns left-to-right.
+ *   pipe(f, g, h)(x) === h(g(f(x)))
+ *
+ * compose(...fns) — Returns a function that applies fns right-to-left.
+ *   compose(f, g, h)(x) === f(g(h(x)))
+ *
+ * Rules:
+ * - If no functions are provided, return the identity function (x => x)
+ * - If one function is provided, return it directly
+ * - Each function in the chain takes a single argument (unary)
+ *
+ * Bonus: Implement asyncPipe that works with async functions (each fn can
+ * return a value or a Promise).
+ */
+
+type Fn = (arg: any) => any;
+type AsyncFn = (arg: any) => any | Promise<any>;
+
+export function pipe(...fns: Fn[]): Fn {
+  // YOUR CODE HERE
+  return (x) => x;
+}
+
+export function compose(...fns: Fn[]): Fn {
+  // YOUR CODE HERE
+  return (x) => x;
+}
+
+export function asyncPipe(...fns: AsyncFn[]): (arg: any) => Promise<any> {
+  // YOUR CODE HERE
+  return async (x) => x;
+}
+]==],
+    tests = [==[
+import { describe, it, expect } from 'vitest';
+import { pipe, compose, asyncPipe } from './challenge';
+
+describe('Pipe', () => {
+  it('applies functions left to right', () => {
+    const add1 = (x: number) => x + 1;
+    const double = (x: number) => x * 2;
+    expect(pipe(add1, double)(5)).toBe(12); // (5+1)*2
+  });
+
+  it('single function returns it directly', () => {
+    const add1 = (x: number) => x + 1;
+    expect(pipe(add1)(10)).toBe(11);
+  });
+
+  it('no functions returns identity', () => {
+    expect(pipe()(42)).toBe(42);
+    expect(pipe()('hello')).toBe('hello');
+  });
+
+  it('three functions', () => {
+    const add1 = (x: number) => x + 1;
+    const double = (x: number) => x * 2;
+    const square = (x: number) => x * x;
+    expect(pipe(add1, double, square)(3)).toBe(64); // ((3+1)*2)^2
+  });
+
+  it('works with strings', () => {
+    const upper = (s: string) => s.toUpperCase();
+    const exclaim = (s: string) => s + '!';
+    const trim = (s: string) => s.trim();
+    expect(pipe(trim, upper, exclaim)('  hello  ')).toBe('HELLO!');
+  });
+
+  it('many functions', () => {
+    const fns = Array.from({ length: 100 }, () => (x: number) => x + 1);
+    expect(pipe(...fns)(0)).toBe(100);
+  });
+});
+
+describe('Compose', () => {
+  it('applies functions right to left', () => {
+    const add1 = (x: number) => x + 1;
+    const double = (x: number) => x * 2;
+    expect(compose(add1, double)(5)).toBe(11); // (5*2)+1
+  });
+
+  it('single function returns it directly', () => {
+    const double = (x: number) => x * 2;
+    expect(compose(double)(7)).toBe(14);
+  });
+
+  it('no functions returns identity', () => {
+    expect(compose()(99)).toBe(99);
+  });
+
+  it('compose is reverse of pipe', () => {
+    const add1 = (x: number) => x + 1;
+    const double = (x: number) => x * 2;
+    const square = (x: number) => x * x;
+    // pipe(add1, double, square)(3) = square(double(add1(3))) = 64
+    // compose(square, double, add1)(3) = square(double(add1(3))) = 64
+    expect(compose(square, double, add1)(3)).toBe(64);
+  });
+
+  it('works with type conversions', () => {
+    const toStr = (x: number) => String(x);
+    const len = (s: string) => s.length;
+    expect(compose(len, toStr)(12345)).toBe(5);
+  });
+});
+
+describe('Async Pipe', () => {
+  it('handles sync functions', async () => {
+    const add1 = (x: number) => x + 1;
+    const double = (x: number) => x * 2;
+    expect(await asyncPipe(add1, double)(5)).toBe(12);
+  });
+
+  it('handles async functions', async () => {
+    const asyncAdd1 = async (x: number) => x + 1;
+    const asyncDouble = async (x: number) => x * 2;
+    expect(await asyncPipe(asyncAdd1, asyncDouble)(5)).toBe(12);
+  });
+
+  it('handles mixed sync and async', async () => {
+    const add1 = (x: number) => x + 1;
+    const asyncDouble = async (x: number) => x * 2;
+    expect(await asyncPipe(add1, asyncDouble)(5)).toBe(12);
+  });
+
+  it('no functions returns identity', async () => {
+    expect(await asyncPipe()(42)).toBe(42);
+  });
+
+  it('propagates errors', async () => {
+    const fail = async () => { throw new Error('boom'); };
+    await expect(asyncPipe(fail)('x')).rejects.toThrow('boom');
+  });
+});
+]==],
+  },
+}
 
 --- Deterministic challenge selection based on date.
 --- Cycles sequentially through challenges using day-of-year.
