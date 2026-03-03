@@ -2014,6 +2014,181 @@ describe('Async Pipe', () => {
 });
 ]==],
   },
+  {
+    name = "Min Heap (Priority Queue)",
+    difficulty = "medium",
+    stub = [==[
+/**
+ * Min Heap (Priority Queue)
+ *
+ * Implement a binary min-heap that supports:
+ * - insert(value) — Add a value to the heap. O(log n)
+ * - extractMin() — Remove and return the minimum value. O(log n)
+ * - peek() — Return the minimum value without removing it. O(1)
+ * - size — Number of elements in the heap
+ *
+ * The heap should maintain the min-heap property:
+ * Every parent node has a value <= its children.
+ *
+ * Bonus: Implement heapify(arr) to build a heap from an array in O(n) time.
+ */
+
+export class MinHeap {
+  constructor() {
+    // YOUR CODE HERE
+  }
+
+  insert(value: number): void {
+    // YOUR CODE HERE
+  }
+
+  extractMin(): number | undefined {
+    // YOUR CODE HERE
+    return undefined;
+  }
+
+  peek(): number | undefined {
+    // YOUR CODE HERE
+    return undefined;
+  }
+
+  get size(): number {
+    // YOUR CODE HERE
+    return 0;
+  }
+
+  /**
+   * Bonus: Build heap from array in O(n)
+   */
+  static heapify(arr: number[]): MinHeap {
+    // YOUR CODE HERE
+    return new MinHeap();
+  }
+}
+]==],
+    tests = [==[
+import { describe, it, expect } from 'vitest';
+import { MinHeap } from './challenge';
+
+describe('Min Heap', () => {
+  it('insert and peek', () => {
+    const heap = new MinHeap();
+    heap.insert(5);
+    expect(heap.peek()).toBe(5);
+    heap.insert(3);
+    expect(heap.peek()).toBe(3);
+  });
+
+  it('extractMin returns minimum', () => {
+    const heap = new MinHeap();
+    heap.insert(10);
+    heap.insert(5);
+    heap.insert(15);
+    expect(heap.extractMin()).toBe(5);
+    expect(heap.extractMin()).toBe(10);
+    expect(heap.extractMin()).toBe(15);
+  });
+
+  it('maintains heap property after insertions', () => {
+    const heap = new MinHeap();
+    [7, 3, 9, 1, 5].forEach(v => heap.insert(v));
+    expect(heap.peek()).toBe(1);
+  });
+
+  it('size updates correctly', () => {
+    const heap = new MinHeap();
+    expect(heap.size).toBe(0);
+    heap.insert(1);
+    heap.insert(2);
+    expect(heap.size).toBe(2);
+    heap.extractMin();
+    expect(heap.size).toBe(1);
+  });
+
+  it('extractMin on empty heap returns undefined', () => {
+    const heap = new MinHeap();
+    expect(heap.extractMin()).toBe(undefined);
+  });
+
+  it('peek on empty heap returns undefined', () => {
+    const heap = new MinHeap();
+    expect(heap.peek()).toBe(undefined);
+  });
+
+  it('maintains order with duplicates', () => {
+    const heap = new MinHeap();
+    [5, 3, 5, 1, 3].forEach(v => heap.insert(v));
+    const result = [];
+    while (heap.size > 0) {
+      result.push(heap.extractMin()!);
+    }
+    expect(result).toEqual([1, 3, 3, 5, 5]);
+  });
+
+  it('single element', () => {
+    const heap = new MinHeap();
+    heap.insert(42);
+    expect(heap.peek()).toBe(42);
+    expect(heap.extractMin()).toBe(42);
+    expect(heap.size).toBe(0);
+  });
+
+  it('alternating insert and extract', () => {
+    const heap = new MinHeap();
+    heap.insert(5);
+    heap.insert(2);
+    expect(heap.extractMin()).toBe(2);
+    heap.insert(8);
+    heap.insert(1);
+    expect(heap.extractMin()).toBe(1);
+    expect(heap.extractMin()).toBe(5);
+  });
+
+  it('stress: many insertions', () => {
+    const heap = new MinHeap();
+    const values = Array.from({ length: 1000 }, () => Math.floor(Math.random() * 10000));
+    values.forEach(v => heap.insert(v));
+    expect(heap.size).toBe(1000);
+    
+    const sorted = [];
+    while (heap.size > 0) {
+      sorted.push(heap.extractMin()!);
+    }
+    const expectedSorted = [...values].sort((a, b) => a - b);
+    expect(sorted).toEqual(expectedSorted);
+  });
+
+  it('negative numbers', () => {
+    const heap = new MinHeap();
+    [-5, 3, -10, 0, 7].forEach(v => heap.insert(v));
+    expect(heap.extractMin()).toBe(-10);
+    expect(heap.extractMin()).toBe(-5);
+  });
+
+  it('heapify builds heap from array', () => {
+    const heap = MinHeap.heapify([9, 5, 7, 1, 3]);
+    expect(heap.peek()).toBe(1);
+    expect(heap.size).toBe(5);
+    const result = [];
+    while (heap.size > 0) {
+      result.push(heap.extractMin()!);
+    }
+    expect(result).toEqual([1, 3, 5, 7, 9]);
+  });
+
+  it('heapify empty array', () => {
+    const heap = MinHeap.heapify([]);
+    expect(heap.size).toBe(0);
+    expect(heap.peek()).toBe(undefined);
+  });
+
+  it('heapify single element', () => {
+    const heap = MinHeap.heapify([42]);
+    expect(heap.peek()).toBe(42);
+  });
+});
+]==],
+  },
 }
 
 --- Deterministic challenge selection based on date.
