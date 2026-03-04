@@ -2191,6 +2191,131 @@ describe('Min Heap', () => {
   },
 }
 
+  {
+    name = "Merge Intervals",
+    difficulty = "medium",
+    stub = [==[
+/**
+ * Merge Intervals
+ *
+ * Given an array of intervals where intervals[i] = [start, end],
+ * merge all overlapping intervals and return an array of the
+ * non-overlapping intervals that cover all the intervals in the input.
+ *
+ * Example: merge([[1,3],[2,6],[8,10],[15,18]]) => [[1,6],[8,10],[15,18]]
+ *
+ * Bonus: Implement insertInterval that inserts a new interval into a
+ * sorted, non-overlapping list and merges if necessary — without
+ * re-sorting the entire array.
+ */
+
+export function merge(intervals: [number, number][]): [number, number][] {
+  // YOUR CODE HERE
+  return [];
+}
+
+/**
+ * Bonus: Insert a new interval into a sorted non-overlapping list.
+ * The input intervals are already sorted by start time and non-overlapping.
+ * Return the new list after inserting and merging.
+ */
+export function insertInterval(
+  intervals: [number, number][],
+  newInterval: [number, number]
+): [number, number][] {
+  // YOUR CODE HERE
+  return [];
+}
+]==],
+    tests = [==[
+import { describe, it, expect } from 'vitest';
+import { merge, insertInterval } from './challenge';
+
+describe('Merge Intervals', () => {
+  it('basic overlapping', () => {
+    expect(merge([[1,3],[2,6],[8,10],[15,18]])).toEqual([[1,6],[8,10],[15,18]]);
+  });
+
+  it('fully overlapping', () => {
+    expect(merge([[1,4],[2,3]])).toEqual([[1,4]]);
+  });
+
+  it('adjacent intervals', () => {
+    expect(merge([[1,2],[2,3],[3,4]])).toEqual([[1,4]]);
+  });
+
+  it('no overlap', () => {
+    expect(merge([[1,2],[5,6],[9,10]])).toEqual([[1,2],[5,6],[9,10]]);
+  });
+
+  it('single interval', () => {
+    expect(merge([[1,5]])).toEqual([[1,5]]);
+  });
+
+  it('empty input', () => {
+    expect(merge([])).toEqual([]);
+  });
+
+  it('unsorted input', () => {
+    expect(merge([[3,5],[1,2],[4,7]])).toEqual([[1,2],[3,7]]);
+  });
+
+  it('all merge into one', () => {
+    expect(merge([[1,10],[2,3],[4,5],[6,7]])).toEqual([[1,10]]);
+  });
+
+  it('same start different end', () => {
+    expect(merge([[1,4],[1,5]])).toEqual([[1,5]]);
+  });
+
+  it('negative numbers', () => {
+    expect(merge([[-5,-1],[0,2],[3,5]])).toEqual([[-5,-1],[0,2],[3,5]]);
+  });
+
+  it('stress: many intervals', () => {
+    const intervals: [number, number][] = Array.from({ length: 1000 }, (_, i) => [i * 2, i * 2 + 2]);
+    const result = merge(intervals);
+    expect(result).toEqual([[0, 2000]]);
+  });
+});
+
+describe('Insert Interval', () => {
+  it('insert into middle with merge', () => {
+    expect(insertInterval([[1,3],[6,9]], [2,5])).toEqual([[1,5],[6,9]]);
+  });
+
+  it('insert spanning multiple', () => {
+    expect(insertInterval([[1,2],[3,5],[6,7],[8,10],[12,16]], [4,8]))
+      .toEqual([[1,2],[3,10],[12,16]]);
+  });
+
+  it('insert at beginning', () => {
+    expect(insertInterval([[3,5],[8,10]], [1,2])).toEqual([[1,2],[3,5],[8,10]]);
+  });
+
+  it('insert at end', () => {
+    expect(insertInterval([[1,3],[5,7]], [9,11])).toEqual([[1,3],[5,7],[9,11]]);
+  });
+
+  it('insert into empty list', () => {
+    expect(insertInterval([], [2,5])).toEqual([[2,5]]);
+  });
+
+  it('insert merging all', () => {
+    expect(insertInterval([[1,3],[5,7],[9,11]], [0,12])).toEqual([[0,12]]);
+  });
+
+  it('no overlap - insert between', () => {
+    expect(insertInterval([[1,2],[5,6]], [3,4])).toEqual([[1,2],[3,4],[5,6]]);
+  });
+
+  it('adjacent merge on insert', () => {
+    expect(insertInterval([[1,3],[6,8]], [3,6])).toEqual([[1,8]]);
+  });
+});
+]==],
+  },
+
 --- Deterministic challenge selection based on date.
 --- Cycles sequentially through challenges using day-of-year.
 function M.get_challenge_for_date(date_str)
