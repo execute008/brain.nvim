@@ -2316,6 +2316,193 @@ describe('Insert Interval', () => {
 ]==],
   },
 
+  {
+    name = "JSON Parser",
+    difficulty = "hard",
+    stub = [==[
+/**
+ * JSON Parser
+ *
+ * Implement a JSON parser from scratch.
+ *
+ * parseJSON(input: string): any
+ * - Parses a JSON string and returns the corresponding JavaScript value.
+ * - Must handle: null, booleans, numbers (integers, decimals, negatives, exponents),
+ *   strings (with escape sequences: \", \\, \/, \b, \f, \n, \r, \t, \uXXXX),
+ *   arrays, and nested objects.
+ * - Throw SyntaxError for invalid JSON with a helpful message.
+ *
+ * Do NOT use JSON.parse or eval.
+ *
+ * Bonus: Implement a stringify function that converts a JS value back to
+ * a JSON string (handle the same types).
+ */
+
+export function parseJSON(input: string): any {
+  // YOUR CODE HERE
+  throw new SyntaxError('Not implemented');
+}
+
+export function stringifyJSON(value: any): string {
+  // YOUR CODE HERE
+  return '';
+}
+]==],
+    tests = [==[
+import { describe, it, expect } from 'vitest';
+import { parseJSON, stringifyJSON } from './challenge';
+
+describe('JSON Parser', () => {
+  it('parses null', () => {
+    expect(parseJSON('null')).toBe(null);
+  });
+
+  it('parses booleans', () => {
+    expect(parseJSON('true')).toBe(true);
+    expect(parseJSON('false')).toBe(false);
+  });
+
+  it('parses integers', () => {
+    expect(parseJSON('42')).toBe(42);
+    expect(parseJSON('0')).toBe(0);
+    expect(parseJSON('-7')).toBe(-7);
+  });
+
+  it('parses decimals', () => {
+    expect(parseJSON('3.14')).toBeCloseTo(3.14);
+    expect(parseJSON('-0.5')).toBeCloseTo(-0.5);
+  });
+
+  it('parses exponents', () => {
+    expect(parseJSON('1e10')).toBe(1e10);
+    expect(parseJSON('2.5E-3')).toBeCloseTo(0.0025);
+    expect(parseJSON('-1e+2')).toBe(-100);
+  });
+
+  it('parses simple strings', () => {
+    expect(parseJSON('"hello"')).toBe('hello');
+    expect(parseJSON('""')).toBe('');
+  });
+
+  it('parses string escape sequences', () => {
+    expect(parseJSON('"line1\\nline2"')).toBe('line1\nline2');
+    expect(parseJSON('"tab\\there"')).toBe('tab\there');
+    expect(parseJSON('"quote\\"inside"')).toBe('quote"inside');
+    expect(parseJSON('"back\\\\slash"')).toBe('back\\slash');
+  });
+
+  it('parses unicode escapes', () => {
+    expect(parseJSON('"\\u0041"')).toBe('A');
+    expect(parseJSON('"\\u00e9"')).toBe('\u00e9');
+  });
+
+  it('parses empty array', () => {
+    expect(parseJSON('[]')).toEqual([]);
+  });
+
+  it('parses array of primitives', () => {
+    expect(parseJSON('[1, "two", true, null]')).toEqual([1, 'two', true, null]);
+  });
+
+  it('parses nested arrays', () => {
+    expect(parseJSON('[[1, 2], [3, [4, 5]]]')).toEqual([[1, 2], [3, [4, 5]]]);
+  });
+
+  it('parses empty object', () => {
+    expect(parseJSON('{}')).toEqual({});
+  });
+
+  it('parses simple object', () => {
+    expect(parseJSON('{"a": 1, "b": "hello"}')).toEqual({ a: 1, b: 'hello' });
+  });
+
+  it('parses nested objects', () => {
+    const input = '{"user": {"name": "Alice", "scores": [10, 20]}}';
+    expect(parseJSON(input)).toEqual({ user: { name: 'Alice', scores: [10, 20] } });
+  });
+
+  it('handles whitespace', () => {
+    expect(parseJSON('  { "a" : 1 , "b" : [ 2 , 3 ] }  ')).toEqual({ a: 1, b: [2, 3] });
+  });
+
+  it('throws on invalid JSON - trailing comma', () => {
+    expect(() => parseJSON('[1, 2,]')).toThrow(SyntaxError);
+  });
+
+  it('throws on invalid JSON - single quotes', () => {
+    expect(() => parseJSON("'hello'")).toThrow(SyntaxError);
+  });
+
+  it('throws on invalid JSON - undefined', () => {
+    expect(() => parseJSON('undefined')).toThrow(SyntaxError);
+  });
+
+  it('throws on invalid JSON - missing colon', () => {
+    expect(() => parseJSON('{"a" 1}')).toThrow(SyntaxError);
+  });
+
+  it('throws on empty input', () => {
+    expect(() => parseJSON('')).toThrow(SyntaxError);
+  });
+
+  it('stress: deeply nested structure', () => {
+    const deep = '{"a":{"b":{"c":{"d":{"e":42}}}}}';
+    expect(parseJSON(deep)).toEqual({ a: { b: { c: { d: { e: 42 } } } } });
+  });
+
+  it('stress: large array', () => {
+    const arr = '[' + Array.from({ length: 500 }, (_, i) => i).join(',') + ']';
+    const result = parseJSON(arr);
+    expect(result.length).toBe(500);
+    expect(result[0]).toBe(0);
+    expect(result[499]).toBe(499);
+  });
+});
+
+describe('Stringify JSON', () => {
+  it('stringifies null', () => {
+    expect(stringifyJSON(null)).toBe('null');
+  });
+
+  it('stringifies booleans', () => {
+    expect(stringifyJSON(true)).toBe('true');
+    expect(stringifyJSON(false)).toBe('false');
+  });
+
+  it('stringifies numbers', () => {
+    expect(stringifyJSON(42)).toBe('42');
+    expect(stringifyJSON(3.14)).toBe('3.14');
+  });
+
+  it('stringifies strings with escapes', () => {
+    expect(stringifyJSON('hello')).toBe('"hello"');
+    expect(stringifyJSON('line\nnew')).toBe('"line\\nnew"');
+    expect(stringifyJSON('quote"here')).toBe('"quote\\"here"');
+  });
+
+  it('stringifies arrays', () => {
+    expect(stringifyJSON([1, 'a', true])).toBe('[1,"a",true]');
+  });
+
+  it('stringifies objects', () => {
+    const result = stringifyJSON({ a: 1, b: 'two' });
+    expect(parseJSON(result)).toEqual({ a: 1, b: 'two' });
+  });
+
+  it('stringifies nested structures', () => {
+    const obj = { arr: [1, { nested: true }], val: null };
+    const result = stringifyJSON(obj);
+    expect(parseJSON(result)).toEqual(obj);
+  });
+
+  it('roundtrip: parse(stringify(x)) === x', () => {
+    const original = { users: [{ name: 'Bob', age: 30 }], count: 1, active: true };
+    expect(parseJSON(stringifyJSON(original))).toEqual(original);
+  });
+});
+]==],
+  },
+
 --- Deterministic challenge selection based on date.
 --- Cycles sequentially through challenges using day-of-year.
 function M.get_challenge_for_date(date_str)
