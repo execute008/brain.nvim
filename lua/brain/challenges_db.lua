@@ -2503,6 +2503,206 @@ describe('Stringify JSON', () => {
 ]==],
   },
 
+  {
+    name = "Linked List Operations",
+    difficulty = "easy",
+    stub = [==[
+/**
+ * Linked List Operations
+ *
+ * Implement a singly linked list and common operations on it.
+ *
+ * ListNode: { val: number, next: ListNode | null }
+ *
+ * Implement:
+ * - fromArray(arr) — Build a linked list from an array, return the head
+ * - toArray(head) — Convert a linked list back to an array
+ * - reverse(head) — Reverse the list in-place, return the new head
+ * - findMiddle(head) — Return the middle node (for even length, the second middle)
+ * - hasCycle(head) — Return true if the list has a cycle (Floyd's algorithm)
+ * - mergeSorted(l1, l2) — Merge two sorted lists into one sorted list
+ */
+
+export class ListNode {
+  val: number;
+  next: ListNode | null;
+  constructor(val: number, next: ListNode | null = null) {
+    this.val = val;
+    this.next = next;
+  }
+}
+
+export function fromArray(arr: number[]): ListNode | null {
+  // YOUR CODE HERE
+  return null;
+}
+
+export function toArray(head: ListNode | null): number[] {
+  // YOUR CODE HERE
+  return [];
+}
+
+export function reverse(head: ListNode | null): ListNode | null {
+  // YOUR CODE HERE
+  return null;
+}
+
+export function findMiddle(head: ListNode | null): ListNode | null {
+  // YOUR CODE HERE
+  return null;
+}
+
+export function hasCycle(head: ListNode | null): boolean {
+  // YOUR CODE HERE
+  return false;
+}
+
+export function mergeSorted(
+  l1: ListNode | null,
+  l2: ListNode | null
+): ListNode | null {
+  // YOUR CODE HERE
+  return null;
+}
+]==],
+    tests = [==[
+import { describe, it, expect } from 'vitest';
+import { ListNode, fromArray, toArray, reverse, findMiddle, hasCycle, mergeSorted } from './challenge';
+
+describe('fromArray & toArray', () => {
+  it('round-trips an array', () => {
+    expect(toArray(fromArray([1, 2, 3]))).toEqual([1, 2, 3]);
+  });
+
+  it('empty array returns null', () => {
+    expect(fromArray([])).toBe(null);
+  });
+
+  it('null head returns empty array', () => {
+    expect(toArray(null)).toEqual([]);
+  });
+
+  it('single element', () => {
+    expect(toArray(fromArray([42]))).toEqual([42]);
+  });
+});
+
+describe('reverse', () => {
+  it('reverses a list', () => {
+    expect(toArray(reverse(fromArray([1, 2, 3, 4])))).toEqual([4, 3, 2, 1]);
+  });
+
+  it('single node stays the same', () => {
+    expect(toArray(reverse(fromArray([7])))).toEqual([7]);
+  });
+
+  it('null returns null', () => {
+    expect(reverse(null)).toBe(null);
+  });
+
+  it('two elements', () => {
+    expect(toArray(reverse(fromArray([1, 2])))).toEqual([2, 1]);
+  });
+});
+
+describe('findMiddle', () => {
+  it('odd-length list', () => {
+    expect(findMiddle(fromArray([1, 2, 3, 4, 5]))!.val).toBe(3);
+  });
+
+  it('even-length list returns second middle', () => {
+    expect(findMiddle(fromArray([1, 2, 3, 4]))!.val).toBe(3);
+  });
+
+  it('single element', () => {
+    expect(findMiddle(fromArray([10]))!.val).toBe(10);
+  });
+
+  it('null returns null', () => {
+    expect(findMiddle(null)).toBe(null);
+  });
+
+  it('two elements returns second', () => {
+    expect(findMiddle(fromArray([1, 2]))!.val).toBe(2);
+  });
+});
+
+describe('hasCycle', () => {
+  it('no cycle', () => {
+    expect(hasCycle(fromArray([1, 2, 3]))).toBe(false);
+  });
+
+  it('detects cycle', () => {
+    const a = new ListNode(1);
+    const b = new ListNode(2);
+    const c = new ListNode(3);
+    a.next = b;
+    b.next = c;
+    c.next = a;
+    expect(hasCycle(a)).toBe(true);
+  });
+
+  it('self-loop', () => {
+    const a = new ListNode(1);
+    a.next = a;
+    expect(hasCycle(a)).toBe(true);
+  });
+
+  it('null is not a cycle', () => {
+    expect(hasCycle(null)).toBe(false);
+  });
+
+  it('cycle in the middle', () => {
+    const a = new ListNode(1);
+    const b = new ListNode(2);
+    const c = new ListNode(3);
+    const d = new ListNode(4);
+    a.next = b;
+    b.next = c;
+    c.next = d;
+    d.next = b;
+    expect(hasCycle(a)).toBe(true);
+  });
+});
+
+describe('mergeSorted', () => {
+  it('merges two sorted lists', () => {
+    const l1 = fromArray([1, 3, 5]);
+    const l2 = fromArray([2, 4, 6]);
+    expect(toArray(mergeSorted(l1, l2))).toEqual([1, 2, 3, 4, 5, 6]);
+  });
+
+  it('one list is empty', () => {
+    expect(toArray(mergeSorted(fromArray([1, 2]), null))).toEqual([1, 2]);
+    expect(toArray(mergeSorted(null, fromArray([3, 4])))).toEqual([3, 4]);
+  });
+
+  it('both empty', () => {
+    expect(mergeSorted(null, null)).toBe(null);
+  });
+
+  it('different lengths', () => {
+    const l1 = fromArray([1]);
+    const l2 = fromArray([2, 3, 4, 5]);
+    expect(toArray(mergeSorted(l1, l2))).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it('duplicates', () => {
+    const l1 = fromArray([1, 3, 3]);
+    const l2 = fromArray([1, 2, 3]);
+    expect(toArray(mergeSorted(l1, l2))).toEqual([1, 1, 2, 3, 3, 3]);
+  });
+
+  it('stress: large merge', () => {
+    const a = Array.from({ length: 500 }, (_, i) => i * 2);
+    const b = Array.from({ length: 500 }, (_, i) => i * 2 + 1);
+    const result = toArray(mergeSorted(fromArray(a), fromArray(b)));
+    expect(result).toEqual(Array.from({ length: 1000 }, (_, i) => i));
+  });
+});
+]==],
+  },
+
 --- Deterministic challenge selection based on date.
 --- Cycles sequentially through challenges using day-of-year.
 function M.get_challenge_for_date(date_str)
