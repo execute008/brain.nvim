@@ -2703,6 +2703,188 @@ describe('mergeSorted', () => {
 ]==],
   },
 
+  {
+    name = "Throttle Function",
+    difficulty = "medium",
+    stub = [==[
+/**
+ * Throttle Function
+ *
+ * Implement a throttle function that limits how often the provided function
+ * can be called. Unlike debounce (which waits for silence), throttle ensures
+ * the function fires at most once per `interval` milliseconds.
+ *
+ * Requirements:
+ * - The first call fires immediately (leading edge)
+ * - Subsequent calls within the interval are ignored
+ * - If called during the interval, the LAST call fires when the interval ends (trailing edge)
+ * - The throttled function has cancel() and flush() methods
+ *
+ * Options (bonus):
+ * - leading: boolean (default true) — fire on the leading edge
+ * - trailing: boolean (default true) — fire on the trailing edge
+ */
+
+type AnyFunction = (...args: any[]) => any;
+
+interface ThrottleOptions {
+  leading?: boolean;
+  trailing?: boolean;
+}
+
+interface ThrottledFunction<T extends AnyFunction> {
+  (...args: Parameters<T>): void;
+  cancel(): void;
+  flush(): void;
+}
+
+export function throttle<T extends AnyFunction>(
+  fn: T,
+  interval: number,
+  options?: ThrottleOptions
+): ThrottledFunction<T> {
+  // YOUR CODE HERE
+  const noop = (() => {}) as any;
+  noop.cancel = () => {};
+  noop.flush = () => {};
+  return noop;
+}
+]==],
+    tests = [==[
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { throttle } from './challenge';
+
+describe('Throttle', () => {
+  beforeEach(() => { vi.useFakeTimers(); });
+  afterEach(() => { vi.restoreAllTimers(); });
+
+  it('fires immediately on first call', () => {
+    const fn = vi.fn();
+    const throttled = throttle(fn, 100);
+    throttled();
+    expect(fn).toHaveBeenCalledOnce();
+  });
+
+  it('ignores calls within the interval', () => {
+    const fn = vi.fn();
+    const throttled = throttle(fn, 100);
+    throttled();
+    throttled();
+    throttled();
+    expect(fn).toHaveBeenCalledOnce();
+  });
+
+  it('fires trailing call after interval', () => {
+    const fn = vi.fn();
+    const throttled = throttle(fn, 100);
+    throttled(1);
+    throttled(2);
+    throttled(3);
+    vi.advanceTimersByTime(100);
+    expect(fn).toHaveBeenCalledTimes(2);
+    expect(fn).toHaveBeenLastCalledWith(3);
+  });
+
+  it('allows new call after interval passes', () => {
+    const fn = vi.fn();
+    const throttled = throttle(fn, 100);
+    throttled();
+    vi.advanceTimersByTime(100);
+    throttled();
+    expect(fn).toHaveBeenCalledTimes(2);
+  });
+
+  it('passes latest arguments to trailing call', () => {
+    const fn = vi.fn();
+    const throttled = throttle(fn, 100);
+    throttled('a');
+    throttled('b');
+    throttled('c');
+    vi.advanceTimersByTime(100);
+    expect(fn).toHaveBeenLastCalledWith('c');
+  });
+
+  it('cancel prevents trailing call', () => {
+    const fn = vi.fn();
+    const throttled = throttle(fn, 100);
+    throttled(1);
+    throttled(2);
+    throttled.cancel();
+    vi.advanceTimersByTime(200);
+    expect(fn).toHaveBeenCalledOnce();
+    expect(fn).toHaveBeenCalledWith(1);
+  });
+
+  it('flush immediately fires pending trailing call', () => {
+    const fn = vi.fn();
+    const throttled = throttle(fn, 100);
+    throttled(1);
+    throttled(2);
+    throttled.flush();
+    expect(fn).toHaveBeenCalledTimes(2);
+    expect(fn).toHaveBeenLastCalledWith(2);
+  });
+
+  it('flush does nothing if no pending call', () => {
+    const fn = vi.fn();
+    const throttled = throttle(fn, 100);
+    throttled.flush();
+    expect(fn).not.toHaveBeenCalled();
+  });
+
+  it('leading: false skips immediate call', () => {
+    const fn = vi.fn();
+    const throttled = throttle(fn, 100, { leading: false });
+    throttled(1);
+    expect(fn).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(100);
+    expect(fn).toHaveBeenCalledOnce();
+    expect(fn).toHaveBeenCalledWith(1);
+  });
+
+  it('trailing: false skips trailing call', () => {
+    const fn = vi.fn();
+    const throttled = throttle(fn, 100, { trailing: false });
+    throttled(1);
+    throttled(2);
+    throttled(3);
+    vi.advanceTimersByTime(200);
+    expect(fn).toHaveBeenCalledOnce();
+    expect(fn).toHaveBeenCalledWith(1);
+  });
+
+  it('repeated calls over multiple intervals', () => {
+    const fn = vi.fn();
+    const throttled = throttle(fn, 100);
+    throttled(1);
+    vi.advanceTimersByTime(50);
+    throttled(2);
+    vi.advanceTimersByTime(50);
+    // interval passed: trailing fires with 2
+    throttled(3);
+    vi.advanceTimersByTime(50);
+    throttled(4);
+    vi.advanceTimersByTime(50);
+    // interval passed: trailing fires with 4
+    expect(fn).toHaveBeenCalledTimes(4);
+  });
+
+  it('stress: many rapid calls', () => {
+    const fn = vi.fn();
+    const throttled = throttle(fn, 50);
+    for (let i = 0; i < 200; i++) {
+      throttled(i);
+      vi.advanceTimersByTime(1);
+    }
+    vi.advanceTimersByTime(50);
+    // Should fire way fewer than 200 times
+    expect(fn.mock.calls.length).toBeLessThan(20);
+    expect(fn.mock.calls.length).toBeGreaterThan(2);
+  });
+});
+]==],
+  },
+
 --- Deterministic challenge selection based on date.
 --- Cycles sequentially through challenges using day-of-year.
 function M.get_challenge_for_date(date_str)
