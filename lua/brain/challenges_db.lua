@@ -2885,6 +2885,209 @@ describe('Throttle', () => {
 ]==],
   },
 
+  {
+    name = "Middleware Chain",
+    difficulty = "medium",
+    stub = [==[
+/**
+ * Middleware Chain
+ *
+ * Implement an Express/Koa-style middleware pipeline.
+ *
+ * A middleware is a function (ctx, next) => void | Promise<void>
+ * - `ctx` is a shared context object that middlewares can read/write
+ * - `next()` calls the next middleware in the chain and returns a Promise
+ * - If a middleware doesn't call next(), the chain stops
+ * - Middlewares can run code BEFORE and AFTER next() (like Koa's onion model)
+ * - Calling next() more than once should throw an Error
+ *
+ * Pipeline class:
+ * - use(middleware) -- Add a middleware to the chain. Returns `this` for chaining.
+ * - execute(ctx) -- Run all middlewares on the context. Returns Promise<void>.
+ *
+ * Example:
+ *   const app = new Pipeline();
+ *   app.use(async (ctx, next) => {
+ *     ctx.logs.push('A-before');
+ *     await next();
+ *     ctx.logs.push('A-after');
+ *   });
+ *   app.use(async (ctx, next) => {
+ *     ctx.logs.push('B');
+ *     await next();
+ *   });
+ *   const ctx = { logs: [] };
+ *   await app.execute(ctx);
+ *   // ctx.logs => ['A-before', 'B', 'A-after']
+ */
+
+export type Context = Record<string, any>;
+export type Next = () => Promise<void>;
+export type Middleware = (ctx: Context, next: Next) => void | Promise<void>;
+
+export class Pipeline {
+  use(middleware: Middleware): this {
+    // YOUR CODE HERE
+    return this;
+  }
+
+  execute(ctx: Context): Promise<void> {
+    // YOUR CODE HERE
+    return Promise.resolve();
+  }
+}
+]==],
+    tests = [==[
+import { describe, it, expect } from 'vitest';
+import { Pipeline } from './challenge';
+
+describe('Middleware Chain', () => {
+  it('runs a single middleware', async () => {
+    const app = new Pipeline();
+    const ctx: any = { value: 0 };
+    app.use(async (ctx, next) => {
+      ctx.value = 1;
+      await next();
+    });
+    await app.execute(ctx);
+    expect(ctx.value).toBe(1);
+  });
+
+  it('runs middlewares in order', async () => {
+    const app = new Pipeline();
+    const ctx: any = { logs: [] };
+    app.use(async (ctx, next) => { ctx.logs.push(1); await next(); });
+    app.use(async (ctx, next) => { ctx.logs.push(2); await next(); });
+    app.use(async (ctx, next) => { ctx.logs.push(3); await next(); });
+    await app.execute(ctx);
+    expect(ctx.logs).toEqual([1, 2, 3]);
+  });
+
+  it('supports the onion model (before and after next)', async () => {
+    const app = new Pipeline();
+    const ctx: any = { logs: [] };
+    app.use(async (ctx, next) => {
+      ctx.logs.push('A-before');
+      await next();
+      ctx.logs.push('A-after');
+    });
+    app.use(async (ctx, next) => {
+      ctx.logs.push('B-before');
+      await next();
+      ctx.logs.push('B-after');
+    });
+    app.use(async (ctx, next) => {
+      ctx.logs.push('C');
+      await next();
+    });
+    await app.execute(ctx);
+    expect(ctx.logs).toEqual(['A-before', 'B-before', 'C', 'B-after', 'A-after']);
+  });
+
+  it('stops chain if next is not called', async () => {
+    const app = new Pipeline();
+    const ctx: any = { logs: [] };
+    app.use(async (ctx) => { ctx.logs.push('guard'); });
+    app.use(async (ctx, next) => { ctx.logs.push('unreachable'); await next(); });
+    await app.execute(ctx);
+    expect(ctx.logs).toEqual(['guard']);
+  });
+
+  it('throws if next() called multiple times', async () => {
+    const app = new Pipeline();
+    app.use(async (ctx, next) => {
+      await next();
+      await next();
+    });
+    await expect(app.execute({})).rejects.toThrow();
+  });
+
+  it('propagates errors from middleware', async () => {
+    const app = new Pipeline();
+    app.use(async () => { throw new Error('boom'); });
+    await expect(app.execute({})).rejects.toThrow('boom');
+  });
+
+  it('downstream error caught by upstream middleware', async () => {
+    const app = new Pipeline();
+    const ctx: any = { error: null };
+    app.use(async (ctx, next) => {
+      try { await next(); } catch (e: any) { ctx.error = e.message; }
+    });
+    app.use(async () => { throw new Error('downstream fail'); });
+    await app.execute(ctx);
+    expect(ctx.error).toBe('downstream fail');
+  });
+
+  it('use() is chainable', () => {
+    const app = new Pipeline();
+    const result = app
+      .use(async (ctx, next) => { await next(); })
+      .use(async (ctx, next) => { await next(); });
+    expect(result).toBe(app);
+  });
+
+  it('empty pipeline does nothing', async () => {
+    const app = new Pipeline();
+    const ctx = { value: 42 };
+    await app.execute(ctx);
+    expect(ctx.value).toBe(42);
+  });
+
+  it('ctx is shared across all middlewares', async () => {
+    const app = new Pipeline();
+    app.use(async (ctx, next) => { ctx.user = 'alice'; await next(); });
+    app.use(async (ctx, next) => { ctx.greeting = `hi ${ctx.user}`; await next(); });
+    const ctx: any = {};
+    await app.execute(ctx);
+    expect(ctx.greeting).toBe('hi alice');
+  });
+
+  it('async middlewares run sequentially', async () => {
+    const app = new Pipeline();
+    const ctx: any = { logs: [] };
+    app.use(async (ctx, next) => {
+      await new Promise(r => setTimeout(r, 30));
+      ctx.logs.push('slow');
+      await next();
+    });
+    app.use(async (ctx, next) => {
+      ctx.logs.push('fast');
+      await next();
+    });
+    await app.execute(ctx);
+    expect(ctx.logs).toEqual(['slow', 'fast']);
+  });
+
+  it('stress: many middlewares', async () => {
+    const app = new Pipeline();
+    const ctx: any = { count: 0 };
+    for (let i = 0; i < 200; i++) {
+      app.use(async (ctx, next) => { ctx.count++; await next(); });
+    }
+    await app.execute(ctx);
+    expect(ctx.count).toBe(200);
+  });
+
+  it('timing middleware pattern', async () => {
+    const app = new Pipeline();
+    const ctx: any = {};
+    app.use(async (ctx, next) => {
+      const start = Date.now();
+      await next();
+      ctx.duration = Date.now() - start;
+    });
+    app.use(async (ctx, next) => {
+      await new Promise(r => setTimeout(r, 20));
+      await next();
+    });
+    await app.execute(ctx);
+    expect(ctx.duration).toBeGreaterThanOrEqual(15);
+  });
+});
+]==],
+  },
+
 --- Deterministic challenge selection based on date.
 --- Cycles sequentially through challenges using day-of-year.
 function M.get_challenge_for_date(date_str)
