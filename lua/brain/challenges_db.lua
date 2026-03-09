@@ -3088,6 +3088,193 @@ describe('Middleware Chain', () => {
 ]==],
   },
 
+  {
+    name = "Min Stack",
+    difficulty = "easy",
+    stub = [==[
+/**
+ * Min Stack
+ *
+ * Design a stack that supports push, pop, top, and retrieving the minimum
+ * element — all in O(1) time.
+ *
+ * Implement the MinStack class:
+ * - push(val: number): void — Push val onto the stack
+ * - pop(): number | undefined — Remove and return the top element
+ * - top(): number | undefined — Return the top element without removing it
+ * - getMin(): number | undefined — Retrieve the minimum element in the stack
+ *
+ * Constraint: Every operation must be O(1).
+ *
+ * Bonus: Implement a MaxStack with the same guarantees plus peekMax() and popMax().
+ */
+
+export class MinStack {
+  constructor() {
+    // YOUR CODE HERE
+  }
+
+  push(val: number): void {
+    // YOUR CODE HERE
+  }
+
+  pop(): number | undefined {
+    // YOUR CODE HERE
+    return undefined;
+  }
+
+  top(): number | undefined {
+    // YOUR CODE HERE
+    return undefined;
+  }
+
+  getMin(): number | undefined {
+    // YOUR CODE HERE
+    return undefined;
+  }
+
+  get size(): number {
+    // YOUR CODE HERE
+    return 0;
+  }
+}
+]==],
+    tests = [==[
+import { describe, it, expect } from 'vitest';
+import { MinStack } from './challenge';
+
+describe('Min Stack', () => {
+  it('push and top', () => {
+    const s = new MinStack();
+    s.push(5);
+    expect(s.top()).toBe(5);
+    s.push(3);
+    expect(s.top()).toBe(3);
+  });
+
+  it('pop returns top element', () => {
+    const s = new MinStack();
+    s.push(1);
+    s.push(2);
+    expect(s.pop()).toBe(2);
+    expect(s.top()).toBe(1);
+  });
+
+  it('getMin returns minimum', () => {
+    const s = new MinStack();
+    s.push(5);
+    s.push(2);
+    s.push(8);
+    expect(s.getMin()).toBe(2);
+  });
+
+  it('getMin updates after pop', () => {
+    const s = new MinStack();
+    s.push(3);
+    s.push(1);
+    s.push(5);
+    expect(s.getMin()).toBe(1);
+    s.pop();
+    expect(s.getMin()).toBe(1);
+    s.pop();
+    expect(s.getMin()).toBe(3);
+  });
+
+  it('empty stack returns undefined', () => {
+    const s = new MinStack();
+    expect(s.top()).toBe(undefined);
+    expect(s.pop()).toBe(undefined);
+    expect(s.getMin()).toBe(undefined);
+  });
+
+  it('size tracks correctly', () => {
+    const s = new MinStack();
+    expect(s.size).toBe(0);
+    s.push(1);
+    s.push(2);
+    expect(s.size).toBe(2);
+    s.pop();
+    expect(s.size).toBe(1);
+  });
+
+  it('duplicate minimums', () => {
+    const s = new MinStack();
+    s.push(2);
+    s.push(2);
+    s.push(2);
+    expect(s.getMin()).toBe(2);
+    s.pop();
+    expect(s.getMin()).toBe(2);
+    s.pop();
+    expect(s.getMin()).toBe(2);
+  });
+
+  it('decreasing then increasing sequence', () => {
+    const s = new MinStack();
+    s.push(5);
+    s.push(4);
+    s.push(3);
+    s.push(6);
+    s.push(7);
+    expect(s.getMin()).toBe(3);
+    s.pop();
+    s.pop();
+    expect(s.getMin()).toBe(3);
+    s.pop();
+    expect(s.getMin()).toBe(4);
+  });
+
+  it('negative numbers', () => {
+    const s = new MinStack();
+    s.push(-1);
+    s.push(-5);
+    s.push(-3);
+    expect(s.getMin()).toBe(-5);
+    s.pop();
+    expect(s.getMin()).toBe(-5);
+    s.pop();
+    expect(s.getMin()).toBe(-1);
+  });
+
+  it('single element push and pop', () => {
+    const s = new MinStack();
+    s.push(42);
+    expect(s.getMin()).toBe(42);
+    expect(s.pop()).toBe(42);
+    expect(s.getMin()).toBe(undefined);
+  });
+
+  it('stress: many operations', () => {
+    const s = new MinStack();
+    for (let i = 1000; i >= 0; i--) {
+      s.push(i);
+    }
+    expect(s.getMin()).toBe(0);
+    expect(s.size).toBe(1001);
+    for (let i = 0; i <= 500; i++) {
+      s.pop();
+    }
+    expect(s.getMin()).toBe(501);
+    expect(s.size).toBe(500);
+  });
+
+  it('interleaved push and pop with min tracking', () => {
+    const s = new MinStack();
+    s.push(10);
+    s.push(1);
+    expect(s.getMin()).toBe(1);
+    s.pop();
+    s.push(5);
+    expect(s.getMin()).toBe(5);
+    s.push(0);
+    expect(s.getMin()).toBe(0);
+    s.pop();
+    expect(s.getMin()).toBe(5);
+  });
+});
+]==],
+  },
+
 --- Deterministic challenge selection based on date.
 --- Cycles sequentially through challenges using day-of-year.
 function M.get_challenge_for_date(date_str)
