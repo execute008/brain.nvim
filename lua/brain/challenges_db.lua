@@ -3275,6 +3275,333 @@ describe('Min Stack', () => {
 ]==],
   },
 
+  {
+    name = "Undo/Redo Stack",
+    difficulty = "medium",
+    stub = [==[
+/**
+ * Undo/Redo Stack (Command Pattern)
+ *
+ * Implement a generic undo/redo system using the Command pattern.
+ *
+ * Command interface:
+ *   { execute(): void, undo(): void }
+ *
+ * UndoRedoManager class:
+ * - execute(command) -- Execute a command and push it onto the undo stack.
+ *   Clears the redo stack (new action invalidates future history).
+ * - undo() -- Undo the most recent command. Returns true if something was undone.
+ * - redo() -- Redo the most recently undone command. Returns true if something was redone.
+ * - canUndo -- boolean, whether there's anything to undo
+ * - canRedo -- boolean, whether there's anything to redo
+ * - history -- readonly array of executed command descriptions
+ *
+ * Bonus: Implement a TextEditor class that uses UndoRedoManager internally:
+ * - type(text) -- Insert text at the cursor position
+ * - delete(count) -- Delete `count` characters before the cursor
+ * - moveCursor(position) -- Move cursor to an absolute position
+ * - getText() -- Return current text content
+ * - getCursor() -- Return current cursor position
+ * - undo() / redo() -- Delegate to the manager
+ */
+
+export interface Command {
+  execute(): void;
+  undo(): void;
+  description: string;
+}
+
+export class UndoRedoManager {
+  constructor() {
+    // YOUR CODE HERE
+  }
+
+  execute(command: Command): void {
+    // YOUR CODE HERE
+  }
+
+  undo(): boolean {
+    // YOUR CODE HERE
+    return false;
+  }
+
+  redo(): boolean {
+    // YOUR CODE HERE
+    return false;
+  }
+
+  get canUndo(): boolean {
+    // YOUR CODE HERE
+    return false;
+  }
+
+  get canRedo(): boolean {
+    // YOUR CODE HERE
+    return false;
+  }
+
+  get history(): string[] {
+    // YOUR CODE HERE
+    return [];
+  }
+}
+
+export class TextEditor {
+  constructor() {
+    // YOUR CODE HERE
+  }
+
+  type(text: string): void {
+    // YOUR CODE HERE
+  }
+
+  delete(count: number): void {
+    // YOUR CODE HERE
+  }
+
+  moveCursor(position: number): void {
+    // YOUR CODE HERE
+  }
+
+  getText(): string {
+    // YOUR CODE HERE
+    return '';
+  }
+
+  getCursor(): number {
+    // YOUR CODE HERE
+    return 0;
+  }
+
+  undo(): boolean {
+    // YOUR CODE HERE
+    return false;
+  }
+
+  redo(): boolean {
+    // YOUR CODE HERE
+    return false;
+  }
+}
+]==],
+    tests = [==[
+import { describe, it, expect, vi } from 'vitest';
+import { UndoRedoManager, Command, TextEditor } from './challenge';
+
+describe('UndoRedoManager', () => {
+  it('executes a command', () => {
+    const mgr = new UndoRedoManager();
+    let value = 0;
+    mgr.execute({
+      execute() { value = 10; },
+      undo() { value = 0; },
+      description: 'set to 10',
+    });
+    expect(value).toBe(10);
+  });
+
+  it('undoes a command', () => {
+    const mgr = new UndoRedoManager();
+    let value = 0;
+    mgr.execute({
+      execute() { value = 5; },
+      undo() { value = 0; },
+      description: 'set to 5',
+    });
+    expect(mgr.undo()).toBe(true);
+    expect(value).toBe(0);
+  });
+
+  it('redoes an undone command', () => {
+    const mgr = new UndoRedoManager();
+    let value = 0;
+    mgr.execute({
+      execute() { value = 42; },
+      undo() { value = 0; },
+      description: 'set to 42',
+    });
+    mgr.undo();
+    expect(mgr.redo()).toBe(true);
+    expect(value).toBe(42);
+  });
+
+  it('undo returns false when nothing to undo', () => {
+    const mgr = new UndoRedoManager();
+    expect(mgr.undo()).toBe(false);
+  });
+
+  it('redo returns false when nothing to redo', () => {
+    const mgr = new UndoRedoManager();
+    expect(mgr.redo()).toBe(false);
+  });
+
+  it('new execute clears redo stack', () => {
+    const mgr = new UndoRedoManager();
+    let value = 0;
+    mgr.execute({ execute() { value = 1; }, undo() { value = 0; }, description: 'a' });
+    mgr.execute({ execute() { value = 2; }, undo() { value = 1; }, description: 'b' });
+    mgr.undo();
+    expect(value).toBe(1);
+    mgr.execute({ execute() { value = 3; }, undo() { value = 1; }, description: 'c' });
+    expect(mgr.canRedo).toBe(false);
+    expect(mgr.redo()).toBe(false);
+  });
+
+  it('canUndo and canRedo reflect state', () => {
+    const mgr = new UndoRedoManager();
+    expect(mgr.canUndo).toBe(false);
+    expect(mgr.canRedo).toBe(false);
+    mgr.execute({ execute() {}, undo() {}, description: 'x' });
+    expect(mgr.canUndo).toBe(true);
+    mgr.undo();
+    expect(mgr.canUndo).toBe(false);
+    expect(mgr.canRedo).toBe(true);
+  });
+
+  it('history tracks executed commands', () => {
+    const mgr = new UndoRedoManager();
+    mgr.execute({ execute() {}, undo() {}, description: 'first' });
+    mgr.execute({ execute() {}, undo() {}, description: 'second' });
+    expect(mgr.history).toEqual(['first', 'second']);
+  });
+
+  it('history updates on undo', () => {
+    const mgr = new UndoRedoManager();
+    mgr.execute({ execute() {}, undo() {}, description: 'a' });
+    mgr.execute({ execute() {}, undo() {}, description: 'b' });
+    mgr.undo();
+    expect(mgr.history).toEqual(['a']);
+  });
+
+  it('multiple undo/redo cycles', () => {
+    const mgr = new UndoRedoManager();
+    const log: number[] = [];
+    mgr.execute({ execute() { log.push(1); }, undo() { log.push(-1); }, description: '1' });
+    mgr.execute({ execute() { log.push(2); }, undo() { log.push(-2); }, description: '2' });
+    mgr.execute({ execute() { log.push(3); }, undo() { log.push(-3); }, description: '3' });
+    mgr.undo();
+    mgr.undo();
+    mgr.redo();
+    mgr.redo();
+    expect(log).toEqual([1, 2, 3, -3, -2, 2, 3]);
+  });
+
+  it('stress: many operations', () => {
+    const mgr = new UndoRedoManager();
+    let counter = 0;
+    for (let i = 0; i < 100; i++) {
+      const prev = counter;
+      mgr.execute({
+        execute() { counter++; },
+        undo() { counter = prev; },
+        description: `inc ${i}`,
+      });
+    }
+    expect(counter).toBe(100);
+    for (let i = 0; i < 50; i++) mgr.undo();
+    expect(counter).toBe(50);
+    for (let i = 0; i < 25; i++) mgr.redo();
+    expect(counter).toBe(75);
+  });
+});
+
+describe('TextEditor', () => {
+  it('type inserts text', () => {
+    const editor = new TextEditor();
+    editor.type('hello');
+    expect(editor.getText()).toBe('hello');
+    expect(editor.getCursor()).toBe(5);
+  });
+
+  it('type at cursor position', () => {
+    const editor = new TextEditor();
+    editor.type('hello');
+    editor.moveCursor(0);
+    editor.type('say ');
+    expect(editor.getText()).toBe('say hello');
+    expect(editor.getCursor()).toBe(4);
+  });
+
+  it('delete removes characters before cursor', () => {
+    const editor = new TextEditor();
+    editor.type('hello world');
+    editor.delete(6);
+    expect(editor.getText()).toBe('hello');
+    expect(editor.getCursor()).toBe(5);
+  });
+
+  it('undo type', () => {
+    const editor = new TextEditor();
+    editor.type('hello');
+    editor.undo();
+    expect(editor.getText()).toBe('');
+    expect(editor.getCursor()).toBe(0);
+  });
+
+  it('undo delete', () => {
+    const editor = new TextEditor();
+    editor.type('hello');
+    editor.delete(3);
+    expect(editor.getText()).toBe('he');
+    editor.undo();
+    expect(editor.getText()).toBe('hello');
+    expect(editor.getCursor()).toBe(5);
+  });
+
+  it('redo after undo', () => {
+    const editor = new TextEditor();
+    editor.type('abc');
+    editor.undo();
+    editor.redo();
+    expect(editor.getText()).toBe('abc');
+  });
+
+  it('complex editing sequence with undo', () => {
+    const editor = new TextEditor();
+    editor.type('Hello');
+    editor.type(' World');
+    editor.moveCursor(5);
+    editor.type(',');
+    expect(editor.getText()).toBe('Hello, World');
+    editor.undo();
+    expect(editor.getText()).toBe('Hello World');
+    editor.undo();
+    expect(editor.getText()).toBe('Hello');
+  });
+
+  it('delete at position 0 does nothing meaningful', () => {
+    const editor = new TextEditor();
+    editor.type('abc');
+    editor.moveCursor(0);
+    editor.delete(5);
+    expect(editor.getText()).toBe('abc');
+    expect(editor.getCursor()).toBe(0);
+  });
+
+  it('moveCursor clamps to valid range', () => {
+    const editor = new TextEditor();
+    editor.type('hi');
+    editor.moveCursor(100);
+    expect(editor.getCursor()).toBe(2);
+    editor.moveCursor(-5);
+    expect(editor.getCursor()).toBe(0);
+  });
+
+  it('stress: many type and undo operations', () => {
+    const editor = new TextEditor();
+    for (let i = 0; i < 50; i++) {
+      editor.type(String.fromCharCode(97 + (i % 26)));
+    }
+    expect(editor.getText().length).toBe(50);
+    for (let i = 0; i < 50; i++) {
+      editor.undo();
+    }
+    expect(editor.getText()).toBe('');
+  });
+});
+]==],
+  },
+
 --- Deterministic challenge selection based on date.
 --- Cycles sequentially through challenges using day-of-year.
 function M.get_challenge_for_date(date_str)
