@@ -3602,6 +3602,248 @@ describe('TextEditor', () => {
 ]==],
   },
 
+  {
+    name = "Graph Shortest Path (Dijkstra)",
+    difficulty = "hard",
+    stub = [==[
+/**
+ * Graph Shortest Path (Dijkstra's Algorithm)
+ *
+ * Implement Dijkstra's algorithm to find the shortest path in a weighted directed graph.
+ *
+ * Graph representation: adjacency list
+ *   edges[i] = [[neighbor, weight], ...] for node i
+ *
+ * Implement:
+ * - dijkstra(numNodes, edges, source) -- Returns an array of shortest distances from source
+ *   to every node. Use Infinity for unreachable nodes.
+ *
+ * - shortestPath(numNodes, edges, source, target) -- Returns the actual shortest path
+ *   as an array of node indices, or null if target is unreachable.
+ *
+ * Bonus: Implement a WeightedGraph class with addEdge/removeEdge/shortestPath methods.
+ *
+ * Constraints:
+ * - All edge weights are non-negative
+ * - Use a min-heap / priority queue for O((V + E) log V) complexity
+ */
+
+export function dijkstra(
+  numNodes: number,
+  edges: [number, number][][],
+  source: number
+): number[] {
+  // YOUR CODE HERE
+  return [];
+}
+
+export function shortestPath(
+  numNodes: number,
+  edges: [number, number][][],
+  source: number,
+  target: number
+): number[] | null {
+  // YOUR CODE HERE
+  return null;
+}
+
+export class WeightedGraph {
+  private adjList: Map<number, [number, number][]> = new Map();
+  private nodeCount: number;
+
+  constructor(numNodes: number) {
+    this.nodeCount = numNodes;
+    // YOUR CODE HERE
+  }
+
+  addEdge(from: number, to: number, weight: number): void {
+    // YOUR CODE HERE
+  }
+
+  removeEdge(from: number, to: number): boolean {
+    // YOUR CODE HERE
+    return false;
+  }
+
+  shortestPath(source: number, target: number): { distance: number; path: number[] } | null {
+    // YOUR CODE HERE
+    return null;
+  }
+
+  get size(): number {
+    return this.nodeCount;
+  }
+}
+]==],
+    tests = [==[
+import { describe, it, expect } from 'vitest';
+import { dijkstra, shortestPath, WeightedGraph } from './challenge';
+
+describe('Dijkstra shortest distances', () => {
+  it('simple graph', () => {
+    //   0 --1--> 1 --2--> 2
+    //   |                  ^
+    //   +------10----------+
+    const edges: [number, number][][] = [
+      [[1, 1], [2, 10]],  // 0 -> 1 (w1), 0 -> 2 (w10)
+      [[2, 2]],            // 1 -> 2 (w2)
+      [],                  // 2
+    ];
+    const dist = dijkstra(3, edges, 0);
+    expect(dist).toEqual([0, 1, 3]);
+  });
+
+  it('unreachable nodes get Infinity', () => {
+    const edges: [number, number][][] = [
+      [[1, 5]],
+      [],
+      [[0, 1]],
+    ];
+    const dist = dijkstra(3, edges, 0);
+    expect(dist[0]).toBe(0);
+    expect(dist[1]).toBe(5);
+    expect(dist[2]).toBe(Infinity);
+  });
+
+  it('single node', () => {
+    expect(dijkstra(1, [[]], 0)).toEqual([0]);
+  });
+
+  it('disconnected graph', () => {
+    const edges: [number, number][][] = [[], [], []];
+    const dist = dijkstra(3, edges, 0);
+    expect(dist).toEqual([0, Infinity, Infinity]);
+  });
+
+  it('diamond graph picks shorter path', () => {
+    //        1
+    //   0 --/ \-- 3
+    //    \  2  /
+    //     \-+-/
+    const edges: [number, number][][] = [
+      [[1, 1], [2, 5]],  // 0
+      [[3, 1]],           // 1
+      [[3, 1]],           // 2
+      [],                 // 3
+    ];
+    const dist = dijkstra(4, edges, 0);
+    expect(dist[3]).toBe(2);  // 0->1->3
+  });
+
+  it('handles zero-weight edges', () => {
+    const edges: [number, number][][] = [
+      [[1, 0]],
+      [[2, 0]],
+      [],
+    ];
+    expect(dijkstra(3, edges, 0)).toEqual([0, 0, 0]);
+  });
+
+  it('stress: chain of 1000 nodes', () => {
+    const n = 1000;
+    const edges: [number, number][][] = Array.from({ length: n }, () => []);
+    for (let i = 0; i < n - 1; i++) {
+      edges[i].push([i + 1, 1]);
+    }
+    const dist = dijkstra(n, edges, 0);
+    expect(dist[0]).toBe(0);
+    expect(dist[n - 1]).toBe(n - 1);
+  });
+
+  it('multiple paths with different weights', () => {
+    // 0 -> 1 (w4), 0 -> 2 (w1), 2 -> 1 (w2)
+    const edges: [number, number][][] = [
+      [[1, 4], [2, 1]],
+      [],
+      [[1, 2]],
+    ];
+    const dist = dijkstra(3, edges, 0);
+    expect(dist[1]).toBe(3);  // 0->2->1
+  });
+});
+
+describe('shortestPath reconstruction', () => {
+  it('returns the path', () => {
+    const edges: [number, number][][] = [
+      [[1, 1], [2, 10]],
+      [[2, 2]],
+      [],
+    ];
+    expect(shortestPath(3, edges, 0, 2)).toEqual([0, 1, 2]);
+  });
+
+  it('returns null for unreachable target', () => {
+    const edges: [number, number][][] = [[], [[0, 1]]];
+    expect(shortestPath(2, edges, 0, 1)).toBe(null);
+  });
+
+  it('source equals target', () => {
+    const edges: [number, number][][] = [[[1, 1]], []];
+    expect(shortestPath(2, edges, 0, 0)).toEqual([0]);
+  });
+
+  it('longer path reconstruction', () => {
+    const edges: [number, number][][] = [
+      [[1, 1]],
+      [[2, 1]],
+      [[3, 1]],
+      [[4, 1]],
+      [],
+    ];
+    expect(shortestPath(5, edges, 0, 4)).toEqual([0, 1, 2, 3, 4]);
+  });
+
+  it('chooses shorter path in reconstruction', () => {
+    // 0->1 (w10), 0->2 (w1), 2->1 (w1)
+    const edges: [number, number][][] = [
+      [[1, 10], [2, 1]],
+      [],
+      [[1, 1]],
+    ];
+    expect(shortestPath(3, edges, 0, 1)).toEqual([0, 2, 1]);
+  });
+});
+
+describe('WeightedGraph class', () => {
+  it('addEdge and shortestPath', () => {
+    const g = new WeightedGraph(3);
+    g.addEdge(0, 1, 2);
+    g.addEdge(1, 2, 3);
+    g.addEdge(0, 2, 10);
+    const result = g.shortestPath(0, 2);
+    expect(result).not.toBeNull();
+    expect(result!.distance).toBe(5);
+    expect(result!.path).toEqual([0, 1, 2]);
+  });
+
+  it('removeEdge forces longer path', () => {
+    const g = new WeightedGraph(3);
+    g.addEdge(0, 1, 1);
+    g.addEdge(1, 2, 1);
+    g.addEdge(0, 2, 10);
+    expect(g.shortestPath(0, 2)!.distance).toBe(2);
+    g.removeEdge(0, 1);
+    expect(g.shortestPath(0, 2)!.distance).toBe(10);
+  });
+
+  it('removeEdge returns false for non-existent edge', () => {
+    const g = new WeightedGraph(2);
+    expect(g.removeEdge(0, 1)).toBe(false);
+  });
+
+  it('unreachable target returns null', () => {
+    const g = new WeightedGraph(2);
+    expect(g.shortestPath(0, 1)).toBeNull();
+  });
+
+  it('size returns node count', () => {
+    const g = new WeightedGraph(5);
+    expect(g.size).toBe(5);
+  });
+});
+]==],
+  },
+
 --- Deterministic challenge selection based on date.
 --- Cycles sequentially through challenges using day-of-year.
 function M.get_challenge_for_date(date_str)
