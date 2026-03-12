@@ -3844,6 +3844,307 @@ describe('WeightedGraph class', () => {
 ]==],
   },
 
+  {
+    name = "Finite State Machine",
+    difficulty = "medium",
+    stub = [==[
+/**
+ * Finite State Machine
+ *
+ * Implement a generic finite state machine (FSM) that can model
+ * stateful systems like traffic lights, vending machines, or UI flows.
+ *
+ * StateMachine class:
+ * - constructor(config) — Takes a configuration object:
+ *   {
+ *     initial: string,            // starting state
+ *     states: {
+ *       [stateName]: {
+ *         on: { [event]: string | { target: string, action?: (ctx) => void } }
+ *         enter?: (ctx) => void,  // called when entering this state
+ *         exit?: (ctx) => void,   // called when leaving this state
+ *       }
+ *     }
+ *   }
+ *
+ * - send(event: string) — Trigger a transition. Returns the new state.
+ *   If the event is not defined for the current state, stay in the current state.
+ * - get state — Current state name
+ * - get context — Shared context object (starts as {})
+ * - matches(state: string) — Returns true if current state equals the given state
+ * - onTransition(callback) — Register a listener called on every transition
+ *   with { from, to, event }. Returns an unsubscribe function.
+ *
+ * Bonus: Add guard conditions — transitions only happen if guard(ctx) returns true.
+ *   on: { EVENT: { target: 'next', guard: (ctx) => ctx.count > 0 } }
+ */
+
+type ActionFn = (ctx: Record<string, any>) => void;
+type GuardFn = (ctx: Record<string, any>) => boolean;
+
+interface TransitionTarget {
+  target: string;
+  action?: ActionFn;
+  guard?: GuardFn;
+}
+
+interface StateConfig {
+  on?: Record<string, string | TransitionTarget>;
+  enter?: ActionFn;
+  exit?: ActionFn;
+}
+
+interface MachineConfig {
+  initial: string;
+  states: Record<string, StateConfig>;
+}
+
+interface TransitionInfo {
+  from: string;
+  to: string;
+  event: string;
+}
+
+export class StateMachine {
+  constructor(config: MachineConfig) {
+    // YOUR CODE HERE
+  }
+
+  send(event: string): string {
+    // YOUR CODE HERE
+    return '';
+  }
+
+  get state(): string {
+    // YOUR CODE HERE
+    return '';
+  }
+
+  get context(): Record<string, any> {
+    // YOUR CODE HERE
+    return {};
+  }
+
+  matches(state: string): boolean {
+    // YOUR CODE HERE
+    return false;
+  }
+
+  onTransition(callback: (info: TransitionInfo) => void): () => void {
+    // YOUR CODE HERE
+    return () => {};
+  }
+}
+]==],
+    tests = [==[
+import { describe, it, expect, vi } from 'vitest';
+import { StateMachine } from './challenge';
+
+describe('Finite State Machine', () => {
+  const trafficLight = () => new StateMachine({
+    initial: 'green',
+    states: {
+      green: { on: { TIMER: 'yellow' } },
+      yellow: { on: { TIMER: 'red' } },
+      red: { on: { TIMER: 'green' } },
+    },
+  });
+
+  it('starts in initial state', () => {
+    const machine = trafficLight();
+    expect(machine.state).toBe('green');
+  });
+
+  it('transitions on event', () => {
+    const machine = trafficLight();
+    expect(machine.send('TIMER')).toBe('yellow');
+    expect(machine.state).toBe('yellow');
+  });
+
+  it('follows full cycle', () => {
+    const machine = trafficLight();
+    machine.send('TIMER');
+    machine.send('TIMER');
+    machine.send('TIMER');
+    expect(machine.state).toBe('green');
+  });
+
+  it('ignores undefined events', () => {
+    const machine = trafficLight();
+    machine.send('UNKNOWN');
+    expect(machine.state).toBe('green');
+  });
+
+  it('matches checks current state', () => {
+    const machine = trafficLight();
+    expect(machine.matches('green')).toBe(true);
+    expect(machine.matches('red')).toBe(false);
+  });
+
+  it('calls enter/exit hooks', () => {
+    const enterFn = vi.fn();
+    const exitFn = vi.fn();
+    const machine = new StateMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: { START: 'running' },
+          exit: exitFn,
+        },
+        running: {
+          on: { STOP: 'idle' },
+          enter: enterFn,
+        },
+      },
+    });
+    machine.send('START');
+    expect(exitFn).toHaveBeenCalledOnce();
+    expect(enterFn).toHaveBeenCalledOnce();
+  });
+
+  it('enter hook receives context', () => {
+    const machine = new StateMachine({
+      initial: 'a',
+      states: {
+        a: { on: { GO: { target: 'b', action: (ctx) => { ctx.count = 1; } } } },
+        b: { enter: (ctx) => { ctx.entered = true; } },
+      },
+    });
+    machine.send('GO');
+    expect(machine.context.count).toBe(1);
+    expect(machine.context.entered).toBe(true);
+  });
+
+  it('action runs on transition', () => {
+    const machine = new StateMachine({
+      initial: 'off',
+      states: {
+        off: { on: { TOGGLE: { target: 'on', action: (ctx) => { ctx.toggles = (ctx.toggles || 0) + 1; } } } },
+        on: { on: { TOGGLE: { target: 'off', action: (ctx) => { ctx.toggles = (ctx.toggles || 0) + 1; } } } },
+      },
+    });
+    machine.send('TOGGLE');
+    machine.send('TOGGLE');
+    machine.send('TOGGLE');
+    expect(machine.context.toggles).toBe(3);
+    expect(machine.state).toBe('on');
+  });
+
+  it('onTransition callback fires', () => {
+    const machine = trafficLight();
+    const cb = vi.fn();
+    machine.onTransition(cb);
+    machine.send('TIMER');
+    expect(cb).toHaveBeenCalledWith({ from: 'green', to: 'yellow', event: 'TIMER' });
+  });
+
+  it('onTransition unsubscribe works', () => {
+    const machine = trafficLight();
+    const cb = vi.fn();
+    const unsub = machine.onTransition(cb);
+    machine.send('TIMER');
+    unsub();
+    machine.send('TIMER');
+    expect(cb).toHaveBeenCalledOnce();
+  });
+
+  it('onTransition does not fire for ignored events', () => {
+    const machine = trafficLight();
+    const cb = vi.fn();
+    machine.onTransition(cb);
+    machine.send('NOPE');
+    expect(cb).not.toHaveBeenCalled();
+  });
+
+  it('guard prevents transition when false', () => {
+    const machine = new StateMachine({
+      initial: 'locked',
+      states: {
+        locked: {
+          on: { INSERT_COIN: { target: 'unlocked', guard: (ctx) => (ctx.coins || 0) >= 1 } },
+        },
+        unlocked: {
+          on: { PUSH: 'locked' },
+          enter: (ctx) => { ctx.coins = 0; },
+        },
+      },
+    });
+    machine.send('INSERT_COIN');
+    expect(machine.state).toBe('locked');
+    (machine.context as any).coins = 1;
+    machine.send('INSERT_COIN');
+    expect(machine.state).toBe('unlocked');
+  });
+
+  it('guard receives current context', () => {
+    const guardFn = vi.fn(() => true);
+    const machine = new StateMachine({
+      initial: 'a',
+      states: {
+        a: { on: { GO: { target: 'b', guard: guardFn } } },
+        b: {},
+      },
+    });
+    (machine.context as any).data = 42;
+    machine.send('GO');
+    expect(guardFn).toHaveBeenCalledWith(expect.objectContaining({ data: 42 }));
+  });
+
+  it('context persists across transitions', () => {
+    const machine = new StateMachine({
+      initial: 'a',
+      states: {
+        a: { on: { NEXT: { target: 'b', action: (ctx) => { ctx.step = 1; } } } },
+        b: { on: { NEXT: { target: 'c', action: (ctx) => { ctx.step = 2; } } } },
+        c: {},
+      },
+    });
+    machine.send('NEXT');
+    machine.send('NEXT');
+    expect(machine.context.step).toBe(2);
+    expect(machine.state).toBe('c');
+  });
+
+  it('stress: many transitions', () => {
+    const machine = trafficLight();
+    for (let i = 0; i < 300; i++) {
+      machine.send('TIMER');
+    }
+    expect(machine.state).toBe('green');
+  });
+
+  it('multiple onTransition listeners', () => {
+    const machine = trafficLight();
+    const cb1 = vi.fn();
+    const cb2 = vi.fn();
+    machine.onTransition(cb1);
+    machine.onTransition(cb2);
+    machine.send('TIMER');
+    expect(cb1).toHaveBeenCalledOnce();
+    expect(cb2).toHaveBeenCalledOnce();
+  });
+
+  it('self-transition calls exit then enter', () => {
+    const enter = vi.fn();
+    const exit = vi.fn();
+    const machine = new StateMachine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: { REFRESH: 'idle' },
+          enter,
+          exit,
+        },
+      },
+    });
+    machine.send('REFRESH');
+    expect(exit).toHaveBeenCalledOnce();
+    expect(enter).toHaveBeenCalledOnce();
+  });
+});
+]==],
+  },
+
 --- Deterministic challenge selection based on date.
 --- Cycles sequentially through challenges using day-of-year.
 function M.get_challenge_for_date(date_str)
