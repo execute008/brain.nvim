@@ -4145,6 +4145,212 @@ describe('Finite State Machine', () => {
 ]==],
   },
 
+  {
+    name = "Virtual DOM Differ",
+    difficulty = "medium",
+    stub = [==[
+/**
+ * Virtual DOM Differ
+ *
+ * Implement a minimal virtual DOM diffing algorithm (like React's reconciliation).
+ * 
+ * A VNode is a plain object representing a DOM element:
+ *   { type: string, props: Record<string, any>, children: VNode[] }
+ *
+ * Implement diff(oldTree, newTree) that returns a list of patch operations:
+ *   - { type: 'CREATE', node: VNode } — create a new DOM node
+ *   - { type: 'REMOVE' } — remove the DOM node
+ *   - { type: 'REPLACE', node: VNode } — replace with a different node
+ *   - { type: 'UPDATE', props: Record<string, any> } — update props
+ *   - { type: 'REORDER', moves: number[] } — children were reordered
+ *
+ * Rules:
+ * - If node types differ, treat as REPLACE
+ * - If types match, check if props changed → UPDATE
+ * - Recursively diff children
+ * - For simplicity, use index-based child diffing (no key prop for now)
+ *
+ * Bonus: Implement a simple patch(element, patches) function that applies
+ * the patches to a real DOM element.
+ */
+
+export interface VNode {
+  type: string;
+  props: Record<string, any>;
+  children: VNode[];
+}
+
+export type Patch =
+  | { type: 'CREATE'; node: VNode }
+  | { type: 'REMOVE' }
+  | { type: 'REPLACE'; node: VNode }
+  | { type: 'UPDATE'; props: Record<string, any> }
+  | { type: 'REORDER'; moves: number[] };
+
+export function diff(oldNode: VNode | null, newNode: VNode | null): Patch[] {
+  // YOUR CODE HERE
+  return [];
+}
+
+/**
+ * Bonus: Create a VNode helper for cleaner test syntax.
+ */
+export function h(type: string, props: Record<string, any> = {}, children: VNode[] = []): VNode {
+  // YOUR CODE HERE
+  return { type, props, children };
+}
+
+/**
+ * Bonus: Apply patches to a real DOM element (for browser environment).
+ * This is optional — just return if not in browser.
+ */
+export function patch(element: HTMLElement, patches: Patch[]): void {
+  // YOUR CODE HERE
+}
+]==],
+    tests = [==[
+import { describe, it, expect } from 'vitest';
+import { diff, h } from './challenge';
+
+describe('Virtual DOM Differ', () => {
+  it('no change returns empty patches', () => {
+    const node = h('div', { id: 'root' }, []);
+    expect(diff(node, node)).toEqual([]);
+  });
+
+  it('create from null', () => {
+    const node = h('div');
+    const patches = diff(null, node);
+    expect(patches).toEqual([{ type: 'CREATE', node }]);
+  });
+
+  it('remove to null', () => {
+    const node = h('div');
+    const patches = diff(node, null);
+    expect(patches).toEqual([{ type: 'REMOVE' }]);
+  });
+
+  it('replace different types', () => {
+    const oldNode = h('div');
+    const newNode = h('span');
+    const patches = diff(oldNode, newNode);
+    expect(patches).toEqual([{ type: 'REPLACE', node: newNode }]);
+  });
+
+  it('update props on same type', () => {
+    const oldNode = h('div', { className: 'old' });
+    const newNode = h('div', { className: 'new', id: 'box' });
+    const patches = diff(oldNode, newNode);
+    expect(patches).toContainEqual({ type: 'UPDATE', props: { className: 'new', id: 'box' } });
+  });
+
+  it('no update when props identical', () => {
+    const oldNode = h('div', { id: 'x' });
+    const newNode = h('div', { id: 'x' });
+    const patches = diff(oldNode, newNode);
+    expect(patches).toEqual([]);
+  });
+
+  it('diff children - add child', () => {
+    const oldNode = h('ul', {}, []);
+    const newNode = h('ul', {}, [h('li', { key: 'a' })]);
+    const patches = diff(oldNode, newNode);
+    // Should have a CREATE patch somewhere in the output
+    expect(patches.some(p => p.type === 'CREATE')).toBe(true);
+  });
+
+  it('diff children - remove child', () => {
+    const oldNode = h('ul', {}, [h('li', { key: 'a' })]);
+    const newNode = h('ul', {}, []);
+    const patches = diff(oldNode, newNode);
+    expect(patches.some(p => p.type === 'REMOVE')).toBe(true);
+  });
+
+  it('diff children - replace child', () => {
+    const oldNode = h('div', {}, [h('span')]);
+    const newNode = h('div', {}, [h('p')]);
+    const patches = diff(oldNode, newNode);
+    expect(patches.some(p => p.type === 'REPLACE')).toBe(true);
+  });
+
+  it('nested tree - deep update', () => {
+    const oldNode = h('div', {}, [h('span', { id: 'old' })]);
+    const newNode = h('div', {}, [h('span', { id: 'new' })]);
+    const patches = diff(oldNode, newNode);
+    expect(patches.some(p => p.type === 'UPDATE')).toBe(true);
+  });
+
+  it('nested tree - no change', () => {
+    const oldNode = h('div', {}, [h('span', { id: 'x' }, [h('b')])]);
+    const newNode = h('div', {}, [h('span', { id: 'x' }, [h('b')])]);
+    expect(diff(oldNode, newNode)).toEqual([]);
+  });
+
+  it('multiple children with changes', () => {
+    const oldNode = h('ul', {}, [
+      h('li', { id: '1' }),
+      h('li', { id: '2' }),
+    ]);
+    const newNode = h('ul', {}, [
+      h('li', { id: '1', className: 'active' }),
+      h('li', { id: '3' }),
+    ]);
+    const patches = diff(oldNode, newNode);
+    expect(patches.length).toBeGreaterThan(0);
+  });
+
+  it('props removed', () => {
+    const oldNode = h('div', { id: 'x', className: 'box' });
+    const newNode = h('div', { id: 'x' });
+    const patches = diff(oldNode, newNode);
+    // Should detect className was removed
+    expect(patches.some(p => p.type === 'UPDATE')).toBe(true);
+  });
+
+  it('stress: deep tree', () => {
+    const buildTree = (depth: number): VNode => {
+      if (depth === 0) return h('span', { depth });
+      return h('div', { depth }, [buildTree(depth - 1), buildTree(depth - 1)]);
+    };
+    const oldTree = buildTree(5);
+    const newTree = buildTree(5);
+    const patches = diff(oldTree, newTree);
+    expect(patches).toEqual([]);
+  });
+
+  it('stress: wide tree', () => {
+    const oldNode = h('div', {}, Array.from({ length: 50 }, (_, i) => h('span', { id: i })));
+    const newNode = h('div', {}, Array.from({ length: 50 }, (_, i) => h('span', { id: i })));
+    expect(diff(oldNode, newNode)).toEqual([]);
+  });
+
+  it('change in deeply nested prop', () => {
+    const oldNode = h('div', {}, [h('section', {}, [h('p', { id: 'old' })])]);
+    const newNode = h('div', {}, [h('section', {}, [h('p', { id: 'new' })])]);
+    const patches = diff(oldNode, newNode);
+    expect(patches.some(p => p.type === 'UPDATE')).toBe(true);
+  });
+
+  it('all children replaced', () => {
+    const oldNode = h('div', {}, [h('a'), h('b')]);
+    const newNode = h('div', {}, [h('x'), h('y')]);
+    const patches = diff(oldNode, newNode);
+    expect(patches.filter(p => p.type === 'REPLACE').length).toBe(2);
+  });
+
+  it('mixed operations in one diff', () => {
+    const oldNode = h('div', { className: 'old' }, [h('span'), h('b')]);
+    const newNode = h('div', { className: 'new' }, [h('span'), h('i'), h('strong')]);
+    const patches = diff(oldNode, newNode);
+    // Should have UPDATE for className, REPLACE for b->i, CREATE for strong
+    expect(patches.some(p => p.type === 'UPDATE')).toBe(true);
+    expect(patches.some(p => p.type === 'REPLACE')).toBe(true);
+    expect(patches.some(p => p.type === 'CREATE')).toBe(true);
+  });
+});
+]==],
+  },
+
 --- Deterministic challenge selection based on date.
 --- Cycles sequentially through challenges using day-of-year.
 function M.get_challenge_for_date(date_str)
