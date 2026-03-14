@@ -4351,6 +4351,237 @@ describe('Virtual DOM Differ', () => {
 ]==],
   },
 
+  {
+    name = "Roman Numeral Converter",
+    difficulty = "easy",
+    stub = [==[
+/**
+ * Roman Numeral Converter
+ *
+ * Implement bidirectional conversion between integers and Roman numerals.
+ *
+ * Roman numeral symbols:
+ *   I = 1, V = 5, X = 10, L = 50, C = 100, D = 500, M = 1000
+ *
+ * Subtractive notation rules:
+ *   - I before V or X (IV = 4, IX = 9)
+ *   - X before L or C (XL = 40, XC = 90)
+ *   - C before D or M (CD = 400, CM = 900)
+ *
+ * toRoman(num: number): string
+ *   Convert an integer (1-3999) to Roman numerals.
+ *   Examples: 58 → "LVIII", 1994 → "MCMXCIV"
+ *
+ * fromRoman(roman: string): number
+ *   Convert a valid Roman numeral string to an integer.
+ *   Examples: "III" → 3, "MCMXC" → 1990
+ *
+ * Constraints:
+ * - Input integers are between 1 and 3999
+ * - Roman numeral strings are valid and uppercase
+ * - For invalid input, throw an Error
+ */
+
+export function toRoman(num: number): string {
+  // YOUR CODE HERE
+  return '';
+}
+
+export function fromRoman(roman: string): number {
+  // YOUR CODE HERE
+  return 0;
+}
+
+/**
+ * Bonus: Validate that a string is a properly formatted Roman numeral.
+ * Return true if valid, false otherwise.
+ */
+export function isValidRoman(roman: string): boolean {
+  // YOUR CODE HERE
+  return false;
+}
+]==],
+    tests = [==[
+import { describe, it, expect } from 'vitest';
+import { toRoman, fromRoman, isValidRoman } from './challenge';
+
+describe('toRoman', () => {
+  it('single symbols', () => {
+    expect(toRoman(1)).toBe('I');
+    expect(toRoman(5)).toBe('V');
+    expect(toRoman(10)).toBe('X');
+    expect(toRoman(50)).toBe('L');
+    expect(toRoman(100)).toBe('C');
+    expect(toRoman(500)).toBe('D');
+    expect(toRoman(1000)).toBe('M');
+  });
+
+  it('simple addition', () => {
+    expect(toRoman(3)).toBe('III');
+    expect(toRoman(8)).toBe('VIII');
+    expect(toRoman(23)).toBe('XXIII');
+  });
+
+  it('subtractive notation', () => {
+    expect(toRoman(4)).toBe('IV');
+    expect(toRoman(9)).toBe('IX');
+    expect(toRoman(40)).toBe('XL');
+    expect(toRoman(90)).toBe('XC');
+    expect(toRoman(400)).toBe('CD');
+    expect(toRoman(900)).toBe('CM');
+  });
+
+  it('complex numbers', () => {
+    expect(toRoman(58)).toBe('LVIII');
+    expect(toRoman(1994)).toBe('MCMXCIV');
+    expect(toRoman(2024)).toBe('MMXXIV');
+  });
+
+  it('edge cases', () => {
+    expect(toRoman(1)).toBe('I');
+    expect(toRoman(3999)).toBe('MMMCMXCIX');
+  });
+
+  it('throws for out of range', () => {
+    expect(() => toRoman(0)).toThrow();
+    expect(() => toRoman(4000)).toThrow();
+    expect(() => toRoman(-5)).toThrow();
+  });
+
+  it('year conversions', () => {
+    expect(toRoman(1776)).toBe('MDCCLXXVI');
+    expect(toRoman(2000)).toBe('MM');
+    expect(toRoman(1492)).toBe('MCDXCII');
+  });
+
+  it('numbers with many nines', () => {
+    expect(toRoman(99)).toBe('XCIX');
+    expect(toRoman(999)).toBe('CMXCIX');
+    expect(toRoman(1999)).toBe('MCMXCIX');
+  });
+
+  it('round hundreds', () => {
+    expect(toRoman(100)).toBe('C');
+    expect(toRoman(200)).toBe('CC');
+    expect(toRoman(300)).toBe('CCC');
+  });
+
+  it('specific test cases', () => {
+    expect(toRoman(27)).toBe('XXVII');
+    expect(toRoman(444)).toBe('CDXLIV');
+    expect(toRoman(3888)).toBe('MMMDCCCLXXXVIII');
+  });
+});
+
+describe('fromRoman', () => {
+  it('single symbols', () => {
+    expect(fromRoman('I')).toBe(1);
+    expect(fromRoman('V')).toBe(5);
+    expect(fromRoman('X')).toBe(10);
+    expect(fromRoman('L')).toBe(50);
+    expect(fromRoman('C')).toBe(100);
+    expect(fromRoman('D')).toBe(500);
+    expect(fromRoman('M')).toBe(1000);
+  });
+
+  it('simple addition', () => {
+    expect(fromRoman('III')).toBe(3);
+    expect(fromRoman('VIII')).toBe(8);
+    expect(fromRoman('XXIII')).toBe(23);
+  });
+
+  it('subtractive notation', () => {
+    expect(fromRoman('IV')).toBe(4);
+    expect(fromRoman('IX')).toBe(9);
+    expect(fromRoman('XL')).toBe(40);
+    expect(fromRoman('XC')).toBe(90);
+    expect(fromRoman('CD')).toBe(400);
+    expect(fromRoman('CM')).toBe(900);
+  });
+
+  it('complex numbers', () => {
+    expect(fromRoman('LVIII')).toBe(58);
+    expect(fromRoman('MCMXCIV')).toBe(1994);
+    expect(fromRoman('MMXXIV')).toBe(2024);
+  });
+
+  it('edge cases', () => {
+    expect(fromRoman('I')).toBe(1);
+    expect(fromRoman('MMMCMXCIX')).toBe(3999);
+  });
+
+  it('year conversions', () => {
+    expect(fromRoman('MDCCLXXVI')).toBe(1776);
+    expect(fromRoman('MM')).toBe(2000);
+    expect(fromRoman('MCDXCII')).toBe(1492);
+  });
+
+  it('throws for invalid input', () => {
+    expect(() => fromRoman('IIII')).toThrow();
+    expect(() => fromRoman('VV')).toThrow();
+    expect(() => fromRoman('ABCD')).toThrow();
+    expect(() => fromRoman('')).toThrow();
+  });
+});
+
+describe('roundtrip conversion', () => {
+  it('toRoman and fromRoman are inverses', () => {
+    for (let i = 1; i <= 100; i++) {
+      expect(fromRoman(toRoman(i))).toBe(i);
+    }
+  });
+
+  it('random values roundtrip', () => {
+    const testValues = [42, 123, 777, 1234, 2468, 3579];
+    testValues.forEach(n => {
+      expect(fromRoman(toRoman(n))).toBe(n);
+    });
+  });
+
+  it('stress: all values 1-3999', () => {
+    for (let i = 1; i <= 3999; i++) {
+      const roman = toRoman(i);
+      const back = fromRoman(roman);
+      expect(back).toBe(i);
+    }
+  });
+});
+
+describe('isValidRoman', () => {
+  it('valid numerals', () => {
+    expect(isValidRoman('I')).toBe(true);
+    expect(isValidRoman('IV')).toBe(true);
+    expect(isValidRoman('MCMXC')).toBe(true);
+    expect(isValidRoman('MMMCMXCIX')).toBe(true);
+  });
+
+  it('invalid patterns', () => {
+    expect(isValidRoman('IIII')).toBe(false);
+    expect(isValidRoman('VV')).toBe(false);
+    expect(isValidRoman('XXXX')).toBe(false);
+    expect(isValidRoman('LL')).toBe(false);
+  });
+
+  it('invalid characters', () => {
+    expect(isValidRoman('ABC')).toBe(false);
+    expect(isValidRoman('I2V')).toBe(false);
+    expect(isValidRoman('X-V')).toBe(false);
+  });
+
+  it('empty or lowercase', () => {
+    expect(isValidRoman('')).toBe(false);
+    expect(isValidRoman('mcm')).toBe(false);
+  });
+
+  it('invalid subtractive patterns', () => {
+    expect(isValidRoman('IL')).toBe(false);
+    expect(isValidRoman('IC')).toBe(false);
+    expect(isValidRoman('XM')).toBe(false);
+  });
+});
+]==],
+  },
+
 --- Deterministic challenge selection based on date.
 --- Cycles sequentially through challenges using day-of-year.
 function M.get_challenge_for_date(date_str)
