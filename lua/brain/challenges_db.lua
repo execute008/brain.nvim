@@ -4581,6 +4581,347 @@ describe('isValidRoman', () => {
 });
 ]==],
   },
+  {
+    name = "Binary Search Tree Operations",
+    difficulty = "medium",
+    stub = [==[
+/**
+ * Binary Search Tree Operations
+ *
+ * Implement a Binary Search Tree with core operations and traversals.
+ *
+ * TreeNode: { val: number, left: TreeNode | null, right: TreeNode | null }
+ *
+ * Implement:
+ * - insert(root, val) — Insert a value into the BST. Return the new root.
+ * - search(root, val) — Search for a value. Return the node or null.
+ * - delete(root, val) — Delete a value from the BST. Return the new root.
+ * - findMin(root) — Find the minimum value in the BST.
+ * - findMax(root) — Find the maximum value in the BST.
+ * - inorder(root) — Return values in sorted order (left → root → right).
+ * - validate(root) — Check if a tree is a valid BST.
+ * - kthSmallest(root, k) — Find the k-th smallest element (1-indexed).
+ *
+ * Bonus: Implement findLCA(root, p, q) to find the Lowest Common Ancestor.
+ */
+
+export class TreeNode {
+  val: number;
+  left: TreeNode | null;
+  right: TreeNode | null;
+  constructor(val: number, left: TreeNode | null = null, right: TreeNode | null = null) {
+    this.val = val;
+    this.left = left;
+    this.right = right;
+  }
+}
+
+export function insert(root: TreeNode | null, val: number): TreeNode {
+  // YOUR CODE HERE
+  return new TreeNode(val);
+}
+
+export function search(root: TreeNode | null, val: number): TreeNode | null {
+  // YOUR CODE HERE
+  return null;
+}
+
+export function deleteNode(root: TreeNode | null, val: number): TreeNode | null {
+  // YOUR CODE HERE
+  return null;
+}
+
+export function findMin(root: TreeNode | null): number | null {
+  // YOUR CODE HERE
+  return null;
+}
+
+export function findMax(root: TreeNode | null): number | null {
+  // YOUR CODE HERE
+  return null;
+}
+
+export function inorder(root: TreeNode | null): number[] {
+  // YOUR CODE HERE
+  return [];
+}
+
+export function validate(root: TreeNode | null): boolean {
+  // YOUR CODE HERE
+  return false;
+}
+
+export function kthSmallest(root: TreeNode | null, k: number): number | null {
+  // YOUR CODE HERE
+  return null;
+}
+
+export function findLCA(root: TreeNode | null, p: number, q: number): TreeNode | null {
+  // YOUR CODE HERE
+  return null;
+}
+]==],
+    tests = [==[
+import { describe, it, expect } from 'vitest';
+import { TreeNode, insert, search, deleteNode, findMin, findMax, inorder, validate, kthSmallest, findLCA } from './challenge';
+
+function buildTree(values: (number | null)[]): TreeNode | null {
+  if (!values.length || values[0] === null) return null;
+  const root = new TreeNode(values[0]);
+  const queue = [root];
+  let i = 1;
+  while (i < values.length) {
+    const node = queue.shift()!;
+    if (values[i] !== null) {
+      node.left = new TreeNode(values[i]!);
+      queue.push(node.left);
+    }
+    i++;
+    if (i < values.length && values[i] !== null) {
+      node.right = new TreeNode(values[i]!);
+      queue.push(node.right);
+    }
+    i++;
+  }
+  return root;
+}
+
+describe('insert', () => {
+  it('insert into empty tree', () => {
+    const root = insert(null, 5);
+    expect(root.val).toBe(5);
+  });
+
+  it('builds correct BST structure', () => {
+    let root = null;
+    [5, 3, 7, 1, 4, 6, 9].forEach(v => { root = insert(root, v); });
+    expect(inorder(root)).toEqual([1, 3, 4, 5, 6, 7, 9]);
+  });
+
+  it('maintains BST property after multiple inserts', () => {
+    let root = null;
+    [10, 5, 15, 3, 7, 12, 20].forEach(v => { root = insert(root, v); });
+    expect(validate(root)).toBe(true);
+  });
+});
+
+describe('search', () => {
+  const root = buildTree([5, 3, 7, 1, 4, 6, 9]);
+
+  it('finds existing value', () => {
+    expect(search(root, 7)?.val).toBe(7);
+    expect(search(root, 1)?.val).toBe(1);
+  });
+
+  it('returns null for missing value', () => {
+    expect(search(root, 99)).toBe(null);
+  });
+
+  it('searches empty tree', () => {
+    expect(search(null, 5)).toBe(null);
+  });
+});
+
+describe('deleteNode', () => {
+  it('delete leaf node', () => {
+    let root = buildTree([5, 3, 7, 1, 4, 6, 9]);
+    root = deleteNode(root, 1);
+    expect(inorder(root)).toEqual([3, 4, 5, 6, 7, 9]);
+  });
+
+  it('delete node with one child', () => {
+    let root = buildTree([5, 3, 7, null, 4, 6, 9]);
+    root = deleteNode(root, 3);
+    expect(inorder(root)).toEqual([4, 5, 6, 7, 9]);
+  });
+
+  it('delete node with two children', () => {
+    let root = buildTree([5, 3, 7, 1, 4, 6, 9]);
+    root = deleteNode(root, 5);
+    const values = inorder(root);
+    expect(values).toEqual([1, 3, 4, 6, 7, 9]);
+    expect(validate(root)).toBe(true);
+  });
+
+  it('delete root', () => {
+    let root = buildTree([5]);
+    root = deleteNode(root, 5);
+    expect(root).toBe(null);
+  });
+
+  it('delete non-existent value', () => {
+    let root = buildTree([5, 3, 7]);
+    root = deleteNode(root, 99);
+    expect(inorder(root)).toEqual([3, 5, 7]);
+  });
+});
+
+describe('findMin and findMax', () => {
+  const root = buildTree([5, 3, 7, 1, 4, 6, 9]);
+
+  it('finds minimum', () => {
+    expect(findMin(root)).toBe(1);
+  });
+
+  it('finds maximum', () => {
+    expect(findMax(root)).toBe(9);
+  });
+
+  it('empty tree returns null', () => {
+    expect(findMin(null)).toBe(null);
+    expect(findMax(null)).toBe(null);
+  });
+
+  it('single node', () => {
+    const single = new TreeNode(42);
+    expect(findMin(single)).toBe(42);
+    expect(findMax(single)).toBe(42);
+  });
+});
+
+describe('inorder', () => {
+  it('returns sorted values', () => {
+    const root = buildTree([5, 3, 7, 1, 4, 6, 9]);
+    expect(inorder(root)).toEqual([1, 3, 4, 5, 6, 7, 9]);
+  });
+
+  it('empty tree', () => {
+    expect(inorder(null)).toEqual([]);
+  });
+
+  it('single node', () => {
+    expect(inorder(new TreeNode(10))).toEqual([10]);
+  });
+
+  it('skewed tree', () => {
+    const root = buildTree([1, null, 2, null, 3, null, 4]);
+    expect(inorder(root)).toEqual([1, 2, 3, 4]);
+  });
+});
+
+describe('validate', () => {
+  it('valid BST', () => {
+    const root = buildTree([5, 3, 7, 1, 4, 6, 9]);
+    expect(validate(root)).toBe(true);
+  });
+
+  it('invalid BST - left > root', () => {
+    const root = new TreeNode(5);
+    root.left = new TreeNode(7);
+    root.right = new TreeNode(10);
+    expect(validate(root)).toBe(false);
+  });
+
+  it('invalid BST - right < root', () => {
+    const root = new TreeNode(5);
+    root.left = new TreeNode(3);
+    root.right = new TreeNode(4);
+    expect(validate(root)).toBe(false);
+  });
+
+  it('invalid BST - violates range constraint', () => {
+    const root = new TreeNode(10);
+    root.left = new TreeNode(5);
+    root.left.right = new TreeNode(15);
+    expect(validate(root)).toBe(false);
+  });
+
+  it('empty tree is valid', () => {
+    expect(validate(null)).toBe(true);
+  });
+
+  it('single node is valid', () => {
+    expect(validate(new TreeNode(5))).toBe(true);
+  });
+});
+
+describe('kthSmallest', () => {
+  const root = buildTree([5, 3, 7, 1, 4, 6, 9]);
+
+  it('finds 1st smallest', () => {
+    expect(kthSmallest(root, 1)).toBe(1);
+  });
+
+  it('finds 4th smallest', () => {
+    expect(kthSmallest(root, 4)).toBe(5);
+  });
+
+  it('finds last element', () => {
+    expect(kthSmallest(root, 7)).toBe(9);
+  });
+
+  it('k out of bounds returns null', () => {
+    expect(kthSmallest(root, 0)).toBe(null);
+    expect(kthSmallest(root, 100)).toBe(null);
+  });
+
+  it('empty tree', () => {
+    expect(kthSmallest(null, 1)).toBe(null);
+  });
+});
+
+describe('findLCA', () => {
+  const root = buildTree([6, 2, 8, 0, 4, 7, 9, null, null, 3, 5]);
+
+  it('LCA of nodes on different sides', () => {
+    expect(findLCA(root, 2, 8)?.val).toBe(6);
+  });
+
+  it('LCA when one is ancestor of other', () => {
+    expect(findLCA(root, 2, 4)?.val).toBe(2);
+  });
+
+  it('LCA of nodes in left subtree', () => {
+    expect(findLCA(root, 0, 5)?.val).toBe(2);
+  });
+
+  it('LCA of nodes in right subtree', () => {
+    expect(findLCA(root, 7, 9)?.val).toBe(8);
+  });
+
+  it('one or both values missing', () => {
+    expect(findLCA(root, 99, 100)).toBe(null);
+  });
+
+  it('same value', () => {
+    const lca = findLCA(root, 4, 4);
+    expect(lca?.val).toBe(4);
+  });
+});
+
+describe('stress tests', () => {
+  it('large tree insertion and traversal', () => {
+    let root = null;
+    const values = Array.from({ length: 500 }, (_, i) => i);
+    values.sort(() => Math.random() - 0.5);
+    values.forEach(v => { root = insert(root, v); });
+    expect(validate(root)).toBe(true);
+    const sorted = inorder(root);
+    expect(sorted).toEqual(Array.from({ length: 500 }, (_, i) => i));
+  });
+
+  it('sequential inserts maintain validity', () => {
+    let root = null;
+    for (let i = 1; i <= 100; i++) {
+      root = insert(root, i);
+    }
+    expect(validate(root)).toBe(true);
+    expect(findMin(root)).toBe(1);
+    expect(findMax(root)).toBe(100);
+  });
+
+  it('many deletions', () => {
+    let root = null;
+    [50, 25, 75, 12, 37, 62, 87].forEach(v => { root = insert(root, v); });
+    root = deleteNode(root, 25);
+    root = deleteNode(root, 75);
+    root = deleteNode(root, 50);
+    expect(validate(root)).toBe(true);
+    expect(inorder(root)).toEqual([12, 37, 62, 87]);
+  });
+});
+]==],
+  },
 
 --- Deterministic challenge selection based on date.
 --- Cycles sequentially through challenges using day-of-year.
