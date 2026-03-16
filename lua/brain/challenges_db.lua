@@ -4582,6 +4582,249 @@ describe('isValidRoman', () => {
 ]==],
   },
   {
+    name = "Bloom Filter",
+    difficulty = "medium",
+    stub = [==[
+/**
+ * Bloom Filter
+ *
+ * Implement a Bloom filter — a space-efficient probabilistic data structure
+ * used to test whether an element is a member of a set.
+ *
+ * Key properties:
+ * - False positives are possible (may say "yes" when it's "no")
+ * - False negatives are NEVER possible (never says "no" when it's "yes")
+ * - Space-efficient: uses far less memory than a Set for large datasets
+ *
+ * BloomFilter class:
+ * - constructor(size: number, hashCount: number)
+ *   size = bit array size
+ *   hashCount = number of hash functions to use
+ *
+ * - add(item: string): void
+ *   Add an item to the filter
+ *
+ * - contains(item: string): boolean
+ *   Returns true if the item MIGHT be in the set
+ *   Returns false if the item is DEFINITELY NOT in the set
+ *
+ * - get fillRatio(): number
+ *   Percentage of bits set to 1 (useful for debugging)
+ *
+ * Implement multiple hash functions by seeding a simple hash with different values.
+ *
+ * Bonus: Implement estimateFalsePositiveRate() based on current fill ratio.
+ */
+
+export class BloomFilter {
+  constructor(size: number, hashCount: number) {
+    // YOUR CODE HERE
+  }
+
+  add(item: string): void {
+    // YOUR CODE HERE
+  }
+
+  contains(item: string): boolean {
+    // YOUR CODE HERE
+    return false;
+  }
+
+  get fillRatio(): number {
+    // YOUR CODE HERE
+    return 0;
+  }
+
+  /**
+   * Bonus: Estimate the current false positive probability
+   * Formula: (fillRatio)^hashCount
+   */
+  estimateFalsePositiveRate(): number {
+    // YOUR CODE HERE
+    return 0;
+  }
+}
+
+/**
+ * Bonus: Calculate optimal size and hash count for a given capacity and desired error rate.
+ */
+export function optimalParams(capacity: number, errorRate: number): { size: number; hashCount: number } {
+  // YOUR CODE HERE
+  // Formulas:
+  // size = -capacity * ln(errorRate) / (ln(2)^2)
+  // hashCount = size / capacity * ln(2)
+  return { size: 0, hashCount: 0 };
+}
+]==],
+    tests = [==[
+import { describe, it, expect } from 'vitest';
+import { BloomFilter, optimalParams } from './challenge';
+
+describe('Bloom Filter', () => {
+  it('contains returns true after add', () => {
+    const bf = new BloomFilter(100, 3);
+    bf.add('hello');
+    expect(bf.contains('hello')).toBe(true);
+  });
+
+  it('contains returns false for never-added items (high probability)', () => {
+    const bf = new BloomFilter(100, 3);
+    bf.add('alpha');
+    bf.add('beta');
+    expect(bf.contains('gamma')).toBe(false);
+  });
+
+  it('no false negatives - added items always return true', () => {
+    const bf = new BloomFilter(500, 4);
+    const items = ['apple', 'banana', 'cherry', 'date', 'elderberry'];
+    items.forEach(item => bf.add(item));
+    items.forEach(item => expect(bf.contains(item)).toBe(true));
+  });
+
+  it('fillRatio increases as items are added', () => {
+    const bf = new BloomFilter(1000, 3);
+    const initialRatio = bf.fillRatio;
+    expect(initialRatio).toBe(0);
+    bf.add('test');
+    expect(bf.fillRatio).toBeGreaterThan(initialRatio);
+  });
+
+  it('multiple hash functions spread bits', () => {
+    const bf = new BloomFilter(1000, 5);
+    bf.add('test');
+    const ratio1 = bf.fillRatio;
+    const bf2 = new BloomFilter(1000, 1);
+    bf2.add('test');
+    const ratio2 = bf2.fillRatio;
+    expect(ratio1).toBeGreaterThan(ratio2);
+  });
+
+  it('empty filter always returns false', () => {
+    const bf = new BloomFilter(100, 3);
+    expect(bf.contains('anything')).toBe(false);
+  });
+
+  it('same item added multiple times (idempotent)', () => {
+    const bf = new BloomFilter(100, 3);
+    bf.add('repeat');
+    const ratio1 = bf.fillRatio;
+    bf.add('repeat');
+    bf.add('repeat');
+    expect(bf.fillRatio).toBe(ratio1);
+  });
+
+  it('different items hash to different positions', () => {
+    const bf = new BloomFilter(100, 3);
+    bf.add('a');
+    bf.add('b');
+    bf.add('c');
+    const ratio = bf.fillRatio;
+    expect(ratio).toBeGreaterThan(0);
+    expect(ratio).toBeLessThan(0.5);
+  });
+
+  it('false positive rate increases with fill ratio', () => {
+    const bf = new BloomFilter(100, 3);
+    const initialFPR = bf.estimateFalsePositiveRate();
+    for (let i = 0; i < 50; i++) {
+      bf.add(`item${i}`);
+    }
+    const finalFPR = bf.estimateFalsePositiveRate();
+    expect(finalFPR).toBeGreaterThan(initialFPR);
+  });
+
+  it('small filter has more false positives', () => {
+    const small = new BloomFilter(50, 3);
+    const large = new BloomFilter(500, 3);
+    
+    for (let i = 0; i < 20; i++) {
+      small.add(`item${i}`);
+      large.add(`item${i}`);
+    }
+
+    let smallFP = 0, largeFP = 0;
+    for (let i = 100; i < 200; i++) {
+      if (small.contains(`item${i}`)) smallFP++;
+      if (large.contains(`item${i}`)) largeFP++;
+    }
+    
+    expect(smallFP).toBeGreaterThan(largeFP);
+  });
+
+  it('stress: many items', () => {
+    const bf = new BloomFilter(10000, 5);
+    const items: string[] = [];
+    for (let i = 0; i < 1000; i++) {
+      const item = `test${i}`;
+      items.push(item);
+      bf.add(item);
+    }
+    
+    // No false negatives
+    items.forEach(item => expect(bf.contains(item)).toBe(true));
+    
+    // Check false positive rate
+    let falsePositives = 0;
+    for (let i = 1000; i < 2000; i++) {
+      if (bf.contains(`test${i}`)) falsePositives++;
+    }
+    const fpr = falsePositives / 1000;
+    expect(fpr).toBeLessThan(0.1);
+  });
+
+  it('different hash counts affect collision probability', () => {
+    const bf1 = new BloomFilter(1000, 2);
+    const bf2 = new BloomFilter(1000, 6);
+    
+    for (let i = 0; i < 50; i++) {
+      bf1.add(`item${i}`);
+      bf2.add(`item${i}`);
+    }
+    
+    expect(bf1.fillRatio).toBeLessThan(bf2.fillRatio);
+  });
+
+  it('unicode strings work', () => {
+    const bf = new BloomFilter(200, 3);
+    bf.add('🎯');
+    bf.add('hello世界');
+    bf.add('Ñoño');
+    expect(bf.contains('🎯')).toBe(true);
+    expect(bf.contains('hello世界')).toBe(true);
+    expect(bf.contains('Ñoño')).toBe(true);
+  });
+
+  it('empty string is valid', () => {
+    const bf = new BloomFilter(100, 3);
+    bf.add('');
+    expect(bf.contains('')).toBe(true);
+  });
+});
+
+describe('optimalParams', () => {
+  it('calculates reasonable parameters', () => {
+    const { size, hashCount } = optimalParams(1000, 0.01);
+    expect(size).toBeGreaterThan(1000);
+    expect(hashCount).toBeGreaterThan(1);
+    expect(hashCount).toBeLessThan(20);
+  });
+
+  it('lower error rate needs more space', () => {
+    const low = optimalParams(1000, 0.001);
+    const high = optimalParams(1000, 0.1);
+    expect(low.size).toBeGreaterThan(high.size);
+  });
+
+  it('larger capacity needs more space', () => {
+    const small = optimalParams(100, 0.01);
+    const large = optimalParams(10000, 0.01);
+    expect(large.size).toBeGreaterThan(small.size);
+  });
+});
+]==],
+  },
+
+  {
     name = "Binary Search Tree Operations",
     difficulty = "medium",
     stub = [==[
