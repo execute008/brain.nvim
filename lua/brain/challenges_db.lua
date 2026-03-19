@@ -4825,6 +4825,317 @@ describe('optimalParams', () => {
   },
 
   {
+    name = "Token Bucket Rate Limiter",
+    difficulty = "medium",
+    stub = [==[
+/**
+ * Token Bucket Rate Limiter
+ *
+ * Implement a rate limiter using the token bucket algorithm.
+ * This algorithm is widely used in production systems (AWS, Stripe, etc.)
+ *
+ * TokenBucket class:
+ * - constructor(capacity: number, refillRate: number, refillIntervalMs: number)
+ *   capacity: maximum number of tokens in the bucket
+ *   refillRate: how many tokens are added each refill
+ *   refillIntervalMs: how often tokens are added (in milliseconds)
+ *
+ * - tryConsume(tokens: number = 1, now?: number): boolean
+ *   Try to consume `tokens` from the bucket. Returns true if successful.
+ *   `now` parameter allows injecting time for testing (defaults to Date.now())
+ *
+ * - peek(now?: number): number
+ *   Return the current number of available tokens without consuming any.
+ *
+ * - reset(): void
+ *   Reset the bucket to full capacity.
+ *
+ * Example:
+ *   const limiter = new TokenBucket(10, 1, 100); // 10 tokens max, +1 every 100ms
+ *   limiter.tryConsume(3);  // true (7 tokens left)
+ *   limiter.tryConsume(10); // false (only 7 available)
+ *
+ * Bonus: Implement MultiKeyLimiter that manages separate buckets per key (like user ID).
+ *   - tryConsume(key: string, tokens?: number): boolean
+ *   - cleanup(): void — Remove inactive buckets (not accessed in last minute)
+ */
+
+export class TokenBucket {
+  constructor(
+    capacity: number,
+    refillRate: number,
+    refillIntervalMs: number
+  ) {
+    // YOUR CODE HERE
+  }
+
+  tryConsume(tokens: number = 1, now?: number): boolean {
+    // YOUR CODE HERE
+    return false;
+  }
+
+  peek(now?: number): number {
+    // YOUR CODE HERE
+    return 0;
+  }
+
+  reset(): void {
+    // YOUR CODE HERE
+  }
+}
+
+/**
+ * Bonus: Multi-key rate limiter
+ */
+export class MultiKeyLimiter {
+  constructor(
+    capacity: number,
+    refillRate: number,
+    refillIntervalMs: number
+  ) {
+    // YOUR CODE HERE
+  }
+
+  tryConsume(key: string, tokens: number = 1, now?: number): boolean {
+    // YOUR CODE HERE
+    return false;
+  }
+
+  cleanup(now?: number): void {
+    // YOUR CODE HERE
+  }
+
+  get keyCount(): number {
+    // YOUR CODE HERE
+    return 0;
+  }
+}
+]==],
+    tests = [==[
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { TokenBucket, MultiKeyLimiter } from './challenge';
+
+describe('Token Bucket', () => {
+  beforeEach(() => { vi.useFakeTimers(); });
+  afterEach(() => { vi.restoreAllTimers(); });
+
+  it('starts with full capacity', () => {
+    const bucket = new TokenBucket(10, 1, 100);
+    expect(bucket.peek(0)).toBe(10);
+  });
+
+  it('consumes tokens successfully', () => {
+    const bucket = new TokenBucket(10, 1, 100);
+    expect(bucket.tryConsume(3, 0)).toBe(true);
+    expect(bucket.peek(0)).toBe(7);
+  });
+
+  it('rejects when not enough tokens', () => {
+    const bucket = new TokenBucket(5, 1, 100);
+    bucket.tryConsume(3, 0);
+    expect(bucket.tryConsume(5, 0)).toBe(false);
+    expect(bucket.peek(0)).toBe(2);
+  });
+
+  it('refills tokens over time', () => {
+    const bucket = new TokenBucket(10, 2, 100);
+    bucket.tryConsume(8, 0);
+    expect(bucket.peek(0)).toBe(2);
+    expect(bucket.peek(100)).toBe(4);
+    expect(bucket.peek(200)).toBe(6);
+  });
+
+  it('caps at max capacity', () => {
+    const bucket = new TokenBucket(10, 5, 100);
+    bucket.tryConsume(5, 0);
+    expect(bucket.peek(500)).toBe(10);
+  });
+
+  it('multiple partial refills', () => {
+    const bucket = new TokenBucket(100, 1, 50);
+    bucket.tryConsume(50, 0);
+    expect(bucket.peek(0)).toBe(50);
+    expect(bucket.peek(125)).toBe(52);
+    expect(bucket.peek(275)).toBe(55);
+  });
+
+  it('consumes exact amount available', () => {
+    const bucket = new TokenBucket(5, 1, 100);
+    expect(bucket.tryConsume(5, 0)).toBe(true);
+    expect(bucket.peek(0)).toBe(0);
+  });
+
+  it('zero consumption always succeeds', () => {
+    const bucket = new TokenBucket(5, 1, 100);
+    bucket.tryConsume(5, 0);
+    expect(bucket.tryConsume(0, 0)).toBe(true);
+    expect(bucket.peek(0)).toBe(0);
+  });
+
+  it('reset refills to capacity', () => {
+    const bucket = new TokenBucket(10, 1, 100);
+    bucket.tryConsume(8, 0);
+    bucket.reset();
+    expect(bucket.peek(0)).toBe(10);
+  });
+
+  it('refill does not overshoot capacity', () => {
+    const bucket = new TokenBucket(10, 100, 10);
+    bucket.tryConsume(5, 0);
+    expect(bucket.peek(100)).toBe(10);
+  });
+
+  it('handles fractional intervals correctly', () => {
+    const bucket = new TokenBucket(10, 1, 33);
+    bucket.tryConsume(5, 0);
+    expect(bucket.peek(33)).toBe(6);
+    expect(bucket.peek(66)).toBe(7);
+    expect(bucket.peek(99)).toBe(8);
+  });
+
+  it('large time jump refills correctly', () => {
+    const bucket = new TokenBucket(100, 10, 100);
+    bucket.tryConsume(100, 0);
+    expect(bucket.peek(10000)).toBe(100);
+  });
+
+  it('burst then steady consumption', () => {
+    const bucket = new TokenBucket(10, 1, 100);
+    expect(bucket.tryConsume(10, 0)).toBe(true);
+    expect(bucket.tryConsume(1, 50)).toBe(false);
+    expect(bucket.tryConsume(1, 100)).toBe(true);
+    expect(bucket.tryConsume(1, 200)).toBe(true);
+  });
+
+  it('stress: rapid consumption attempts', () => {
+    const bucket = new TokenBucket(100, 1, 10);
+    let successful = 0;
+    for (let i = 0; i < 200; i++) {
+      if (bucket.tryConsume(1, i * 5)) successful++;
+    }
+    expect(successful).toBeGreaterThan(100);
+    expect(successful).toBeLessThan(200);
+  });
+
+  it('peek does not consume', () => {
+    const bucket = new TokenBucket(10, 1, 100);
+    bucket.tryConsume(5, 0);
+    const before = bucket.peek(0);
+    bucket.peek(0);
+    bucket.peek(0);
+    expect(bucket.peek(0)).toBe(before);
+  });
+
+  it('negative time does not break', () => {
+    const bucket = new TokenBucket(10, 1, 100);
+    bucket.tryConsume(5, 100);
+    expect(bucket.peek(50)).toBe(5);
+  });
+
+  it('very small refill rate', () => {
+    const bucket = new TokenBucket(1000, 1, 10000);
+    bucket.tryConsume(500, 0);
+    expect(bucket.peek(0)).toBe(500);
+    expect(bucket.peek(10000)).toBe(501);
+  });
+
+  it('very fast refill rate', () => {
+    const bucket = new TokenBucket(10, 10, 1);
+    bucket.tryConsume(10, 0);
+    expect(bucket.peek(5)).toBe(10);
+  });
+});
+
+describe('MultiKeyLimiter', () => {
+  beforeEach(() => { vi.useFakeTimers(); });
+  afterEach(() => { vi.restoreAllTimers(); });
+
+  it('different keys have independent buckets', () => {
+    const limiter = new MultiKeyLimiter(5, 1, 100);
+    limiter.tryConsume('user1', 3, 0);
+    limiter.tryConsume('user2', 2, 0);
+    expect(limiter.tryConsume('user1', 3, 0)).toBe(false);
+    expect(limiter.tryConsume('user2', 3, 0)).toBe(true);
+  });
+
+  it('keyCount tracks active buckets', () => {
+    const limiter = new MultiKeyLimiter(10, 1, 100);
+    expect(limiter.keyCount).toBe(0);
+    limiter.tryConsume('a', 1, 0);
+    limiter.tryConsume('b', 1, 0);
+    limiter.tryConsume('c', 1, 0);
+    expect(limiter.keyCount).toBe(3);
+  });
+
+  it('cleanup removes inactive buckets', () => {
+    const limiter = new MultiKeyLimiter(10, 1, 100);
+    limiter.tryConsume('user1', 1, 0);
+    limiter.tryConsume('user2', 1, 1000);
+    limiter.tryConsume('user3', 1, 59000);
+    limiter.cleanup(60000);
+    expect(limiter.keyCount).toBe(1);
+  });
+
+  it('cleanup does not remove recently used', () => {
+    const limiter = new MultiKeyLimiter(10, 1, 100);
+    limiter.tryConsume('recent', 1, 50000);
+    limiter.cleanup(60000);
+    expect(limiter.keyCount).toBe(1);
+  });
+
+  it('same key uses same bucket', () => {
+    const limiter = new MultiKeyLimiter(5, 1, 100);
+    limiter.tryConsume('user', 2, 0);
+    limiter.tryConsume('user', 2, 0);
+    expect(limiter.tryConsume('user', 2, 0)).toBe(false);
+  });
+
+  it('refill works per key', () => {
+    const limiter = new MultiKeyLimiter(10, 1, 100);
+    limiter.tryConsume('user', 8, 0);
+    expect(limiter.tryConsume('user', 5, 200)).toBe(false);
+    expect(limiter.tryConsume('user', 4, 200)).toBe(true);
+  });
+
+  it('cleanup with no buckets', () => {
+    const limiter = new MultiKeyLimiter(10, 1, 100);
+    expect(() => limiter.cleanup(1000)).not.toThrow();
+    expect(limiter.keyCount).toBe(0);
+  });
+
+  it('stress: many keys', () => {
+    const limiter = new MultiKeyLimiter(100, 10, 100);
+    for (let i = 0; i < 500; i++) {
+      limiter.tryConsume(`user${i}`, 50, i * 10);
+    }
+    expect(limiter.keyCount).toBe(500);
+    limiter.cleanup(10000);
+    expect(limiter.keyCount).toBeLessThan(100);
+  });
+
+  it('cleanup threshold is 60 seconds', () => {
+    const limiter = new MultiKeyLimiter(10, 1, 100);
+    limiter.tryConsume('old', 1, 0);
+    limiter.tryConsume('edge', 1, 59999);
+    limiter.tryConsume('fresh', 1, 60000);
+    limiter.cleanup(120000);
+    expect(limiter.keyCount).toBeGreaterThan(0);
+  });
+
+  it('multiple cleanups work correctly', () => {
+    const limiter = new MultiKeyLimiter(10, 1, 100);
+    limiter.tryConsume('a', 1, 0);
+    limiter.tryConsume('b', 1, 10000);
+    limiter.cleanup(70000);
+    limiter.tryConsume('c', 1, 80000);
+    limiter.cleanup(140000);
+    expect(limiter.keyCount).toBe(1);
+  });
+});
+]==],
+  },
+
+  {
     name = "Binary Search Tree Operations",
     difficulty = "medium",
     stub = [==[
