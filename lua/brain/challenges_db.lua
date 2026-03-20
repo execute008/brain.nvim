@@ -904,8 +904,6 @@ describe('Trie', () => {
 });
 ]==],
   },
-}
-
   {
     name = "Reactive Observable",
     difficulty = "hard",
@@ -1112,8 +1110,6 @@ describe('Reactive Observable', () => {
 });
 ]==],
   },
-}
-
   {
     name = "Topological Sort",
     difficulty = "medium",
@@ -1244,8 +1240,6 @@ describe('Task Order', () => {
 });
 ]==],
   },
-}
-
   {
     name = "Async Task Scheduler",
     difficulty = "hard",
@@ -1417,8 +1411,6 @@ describe('Async Task Scheduler', () => {
 });
 ]==],
   },
-}
-
   {
     name = "Sliding Window Rate Limiter",
     difficulty = "medium",
@@ -1584,8 +1576,6 @@ describe('Fixed Window Limiter', () => {
 });
 ]==],
   },
-}
-
   {
     name = "Curry Function",
     difficulty = "medium",
@@ -1704,8 +1694,6 @@ describe('Curry Function', () => {
 });
 ]==],
   },
-}
-
   {
     name = "Memoize with TTL",
     difficulty = "medium",
@@ -2189,8 +2177,6 @@ describe('Min Heap', () => {
 });
 ]==],
   },
-}
-
   {
     name = "Merge Intervals",
     difficulty = "medium",
@@ -5476,6 +5462,7 @@ describe('stress tests', () => {
 });
 ]==],
   },
+}
 
 --- Deterministic challenge selection based on date.
 --- Cycles sequentially through challenges using day-of-year.
