@@ -5836,6 +5836,388 @@ describe('stress tests', () => {
   });
   ]==],
     },
+  {
+    name = "Reactive Signal System",
+    difficulty = "medium",
+    stub = [==[
+/**
+ * Reactive Signal System
+ *
+ * Implement a minimal reactivity system inspired by SolidJS, Vue 3, and Preact Signals.
+ * Signals are reactive primitives that automatically track dependencies and propagate updates.
+ *
+ * Core primitives:
+ * - signal<T>(initial: T) — Creates a reactive value with get/set
+ * - computed<T>(fn: () => T) — Creates a derived value that auto-updates when dependencies change
+ * - effect(fn: () => void) — Runs a side-effect that auto-re-runs when dependencies change
+ *
+ * Rules:
+ * - When a signal's value changes, all dependent computeds and effects re-run automatically
+ * - Computeds are lazy: only recompute when accessed AND dependencies have changed
+ * - Effects run immediately on creation, then re-run when dependencies change
+ * - Avoid infinite loops: effects should not trigger themselves
+ *
+ * Example:
+ *   const count = signal(0);
+ *   const doubled = computed(() => count() * 2);
+ *   effect(() => console.log('Count:', count()));
+ *   count.set(5);  // Console logs "Count: 5", doubled() now returns 10
+ *
+ * Bonus: Implement batch() to defer updates until a transaction completes.
+ */
+
+type SignalGetter<T> = {
+  (): T;
+  subscribe(fn: () => void): () => void;
+};
+
+type SignalSetter<T> = (value: T | ((prev: T) => T)) => void;
+
+interface Signal<T> extends SignalGetter<T> {
+  set: SignalSetter<T>;
+}
+
+interface Computed<T> extends SignalGetter<T> {}
+
+interface EffectCleanup {
+  dispose(): void;
+}
+
+export function signal<T>(initial: T): Signal<T> {
+  // YOUR CODE HERE
+  const get: any = () => initial;
+  get.set = () => {};
+  get.subscribe = () => () => {};
+  return get;
+}
+
+export function computed<T>(fn: () => T): Computed<T> {
+  // YOUR CODE HERE
+  const get: any = () => fn();
+  get.subscribe = () => () => {};
+  return get;
+}
+
+export function effect(fn: () => void | (() => void)): EffectCleanup {
+  // YOUR CODE HERE
+  return { dispose: () => {} };
+}
+
+/**
+ * Bonus: Batch updates to avoid multiple re-runs of effects.
+ * All signal updates within the callback are deferred until the function completes.
+ */
+export function batch(fn: () => void): void {
+  // YOUR CODE HERE
+  fn();
+}
+]==],
+    tests = [==[
+import { describe, it, expect, vi } from 'vitest';
+import { signal, computed, effect, batch } from './challenge';
+
+describe('Reactive Signal System', () => {
+  it('signal stores and retrieves value', () => {
+    const count = signal(10);
+    expect(count()).toBe(10);
+  });
+
+  it('signal set updates value', () => {
+    const count = signal(5);
+    count.set(20);
+    expect(count()).toBe(20);
+  });
+
+  it('signal set with updater function', () => {
+    const count = signal(10);
+    count.set(prev => prev + 5);
+    expect(count()).toBe(15);
+  });
+
+  it('computed derives from signal', () => {
+    const count = signal(3);
+    const doubled = computed(() => count() * 2);
+    expect(doubled()).toBe(6);
+  });
+
+  it('computed updates when signal changes', () => {
+    const count = signal(5);
+    const squared = computed(() => count() * count());
+    expect(squared()).toBe(25);
+    count.set(10);
+    expect(squared()).toBe(100);
+  });
+
+  it('effect runs immediately on creation', () => {
+    const fn = vi.fn();
+    effect(fn);
+    expect(fn).toHaveBeenCalledOnce();
+  });
+
+  it('effect re-runs when dependency changes', () => {
+    const count = signal(0);
+    const fn = vi.fn(() => { count(); });
+    effect(fn);
+    expect(fn).toHaveBeenCalledTimes(1);
+    count.set(1);
+    expect(fn).toHaveBeenCalledTimes(2);
+  });
+
+  it('effect tracks multiple dependencies', () => {
+    const a = signal(1);
+    const b = signal(2);
+    const fn = vi.fn(() => { a(); b(); });
+    effect(fn);
+    expect(fn).toHaveBeenCalledTimes(1);
+    a.set(10);
+    expect(fn).toHaveBeenCalledTimes(2);
+    b.set(20);
+    expect(fn).toHaveBeenCalledTimes(3);
+  });
+
+  it('effect does not run when unrelated signal changes', () => {
+    const a = signal(1);
+    const b = signal(2);
+    const fn = vi.fn(() => { a(); });
+    effect(fn);
+    expect(fn).toHaveBeenCalledTimes(1);
+    b.set(99);
+    expect(fn).toHaveBeenCalledTimes(1);
+  });
+
+  it('computed only recomputes when accessed', () => {
+    const count = signal(0);
+    const computeFn = vi.fn(() => count() * 2);
+    const doubled = computed(computeFn);
+    expect(computeFn).not.toHaveBeenCalled();
+    doubled();
+    expect(computeFn).toHaveBeenCalledOnce();
+  });
+
+  it('computed caches value until dependency changes', () => {
+    const count = signal(5);
+    const computeFn = vi.fn(() => count() + 10);
+    const derived = computed(computeFn);
+    derived();
+    derived();
+    derived();
+    expect(computeFn).toHaveBeenCalledOnce();
+    count.set(10);
+    derived();
+    expect(computeFn).toHaveBeenCalledTimes(2);
+  });
+
+  it('effect.dispose stops tracking', () => {
+    const count = signal(0);
+    const fn = vi.fn(() => { count(); });
+    const eff = effect(fn);
+    expect(fn).toHaveBeenCalledTimes(1);
+    eff.dispose();
+    count.set(5);
+    expect(fn).toHaveBeenCalledTimes(1);
+  });
+
+  it('effect cleanup function runs on re-run', () => {
+    const count = signal(0);
+    const cleanup = vi.fn();
+    effect(() => {
+      count();
+      return cleanup;
+    });
+    expect(cleanup).not.toHaveBeenCalled();
+    count.set(1);
+    expect(cleanup).toHaveBeenCalledOnce();
+    count.set(2);
+    expect(cleanup).toHaveBeenCalledTimes(2);
+  });
+
+  it('effect cleanup runs on dispose', () => {
+    const count = signal(0);
+    const cleanup = vi.fn();
+    const eff = effect(() => {
+      count();
+      return cleanup;
+    });
+    eff.dispose();
+    expect(cleanup).toHaveBeenCalledOnce();
+  });
+
+  it('computed can depend on other computeds', () => {
+    const count = signal(2);
+    const doubled = computed(() => count() * 2);
+    const quadrupled = computed(() => doubled() * 2);
+    expect(quadrupled()).toBe(8);
+    count.set(5);
+    expect(quadrupled()).toBe(20);
+  });
+
+  it('effect can read from computed', () => {
+    const count = signal(3);
+    const doubled = computed(() => count() * 2);
+    const fn = vi.fn(() => { doubled(); });
+    effect(fn);
+    expect(fn).toHaveBeenCalledTimes(1);
+    count.set(10);
+    expect(fn).toHaveBeenCalledTimes(2);
+  });
+
+  it('signal does not trigger if value unchanged', () => {
+    const count = signal(5);
+    const fn = vi.fn(() => { count(); });
+    effect(fn);
+    expect(fn).toHaveBeenCalledTimes(1);
+    count.set(5);
+    expect(fn).toHaveBeenCalledTimes(1);
+  });
+
+  it('batch defers updates', () => {
+    const a = signal(1);
+    const b = signal(2);
+    const fn = vi.fn(() => { a(); b(); });
+    effect(fn);
+    expect(fn).toHaveBeenCalledTimes(1);
+    batch(() => {
+      a.set(10);
+      b.set(20);
+    });
+    expect(fn).toHaveBeenCalledTimes(2);
+  });
+
+  it('batch prevents multiple effect runs', () => {
+    const count = signal(0);
+    const fn = vi.fn(() => { count(); });
+    effect(fn);
+    expect(fn).toHaveBeenCalledTimes(1);
+    batch(() => {
+      count.set(1);
+      count.set(2);
+      count.set(3);
+    });
+    expect(fn).toHaveBeenCalledTimes(2);
+  });
+
+  it('nested batch works correctly', () => {
+    const count = signal(0);
+    const fn = vi.fn(() => { count(); });
+    effect(fn);
+    expect(fn).toHaveBeenCalledTimes(1);
+    batch(() => {
+      count.set(1);
+      batch(() => {
+        count.set(2);
+      });
+      count.set(3);
+    });
+    expect(fn).toHaveBeenCalledTimes(2);
+  });
+
+  it('signal.subscribe notifies on change', () => {
+    const count = signal(10);
+    const listener = vi.fn();
+    const unsub = count.subscribe(listener);
+    count.set(20);
+    expect(listener).toHaveBeenCalledOnce();
+    unsub();
+    count.set(30);
+    expect(listener).toHaveBeenCalledOnce();
+  });
+
+  it('complex dependency graph', () => {
+    const a = signal(2);
+    const b = signal(3);
+    const sum = computed(() => a() + b());
+    const product = computed(() => a() * b());
+    const final = computed(() => sum() + product());
+    expect(final()).toBe(11);
+    a.set(5);
+    expect(final()).toBe(23);
+    b.set(4);
+    expect(final()).toBe(29);
+  });
+
+  it('stress: many signals', () => {
+    const signals = Array.from({ length: 100 }, (_, i) => signal(i));
+    const sum = computed(() => signals.reduce((acc, s) => acc + s(), 0));
+    expect(sum()).toBe(4950);
+    signals[50].set(1000);
+    expect(sum()).toBe(5900);
+  });
+
+  it('stress: deep computed chain', () => {
+    const base = signal(1);
+    let current = computed(() => base());
+    for (let i = 0; i < 20; i++) {
+      const prev = current;
+      current = computed(() => prev() + 1);
+    }
+    expect(current()).toBe(21);
+    base.set(10);
+    expect(current()).toBe(30);
+  });
+
+  it('effect with conditional dependency', () => {
+    const flag = signal(true);
+    const a = signal(1);
+    const b = signal(10);
+    const fn = vi.fn(() => {
+      flag() ? a() : b();
+    });
+    effect(fn);
+    expect(fn).toHaveBeenCalledTimes(1);
+    a.set(2);
+    expect(fn).toHaveBeenCalledTimes(2);
+    b.set(20);
+    expect(fn).toHaveBeenCalledTimes(2);
+    flag.set(false);
+    expect(fn).toHaveBeenCalledTimes(3);
+    b.set(30);
+    expect(fn).toHaveBeenCalledTimes(4);
+    a.set(99);
+    expect(fn).toHaveBeenCalledTimes(4);
+  });
+
+  it('computed with side effects in getter still caches', () => {
+    const count = signal(0);
+    const sideEffect = vi.fn();
+    const derived = computed(() => {
+      sideEffect();
+      return count() * 2;
+    });
+    derived();
+    derived();
+    expect(sideEffect).toHaveBeenCalledOnce();
+  });
+
+  it('multiple effects on same signal', () => {
+    const count = signal(0);
+    const fn1 = vi.fn(() => { count(); });
+    const fn2 = vi.fn(() => { count(); });
+    const fn3 = vi.fn(() => { count(); });
+    effect(fn1);
+    effect(fn2);
+    effect(fn3);
+    expect(fn1).toHaveBeenCalledOnce();
+    expect(fn2).toHaveBeenCalledOnce();
+    expect(fn3).toHaveBeenCalledOnce();
+    count.set(5);
+    expect(fn1).toHaveBeenCalledTimes(2);
+    expect(fn2).toHaveBeenCalledTimes(2);
+    expect(fn3).toHaveBeenCalledTimes(2);
+  });
+
+  it('effect that writes to another signal', () => {
+    const a = signal(1);
+    const b = signal(0);
+    effect(() => {
+      b.set(a() * 10);
+    });
+    expect(b()).toBe(10);
+    a.set(5);
+    expect(b()).toBe(50);
+  });
+});
+]==],
+  },
 }
 
 --- Deterministic challenge selection based on date.
