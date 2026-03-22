@@ -6218,6 +6218,435 @@ describe('Reactive Signal System', () => {
 });
 ]==],
   },
+
+  {
+    name = "Text Search & Highlighting Engine",
+    difficulty = "medium",
+    stub = [==[
+/**
+ * Text Search & Highlighting Engine
+ *
+ * Build a search engine that finds and highlights text patterns in documents.
+ * Like Ctrl+F but smarter - support fuzzy matching, case sensitivity, whole words,
+ * and highlight overlapping matches correctly.
+ *
+ * SearchEngine class:
+ * - constructor(options?: SearchOptions)
+ *   options = { caseSensitive?: boolean, wholeWord?: boolean, fuzzy?: boolean }
+ *
+ * - search(text: string, query: string): SearchResult[]
+ *   Find all matches of query in text. Returns array of { start, end, score }.
+ *   For fuzzy search, score indicates match quality (0-100).
+ *
+ * - highlight(text: string, results: SearchResult[], tag?: string): string
+ *   Wrap matches in tags (default: <mark>). Handle overlapping matches by
+ *   merging ranges. Return HTML string with highlighted text.
+ *
+ * - replace(text: string, query: string, replacement: string | ReplaceFn): string
+ *   Replace all matches. Replacement can be a string or function(match, index) => string.
+ *
+ * Fuzzy matching rules:
+ * - Characters must appear in order but can skip letters
+ * - Score based on: consecutive chars bonus, start-of-word bonus, proximity to query start
+ * - Example: "fb" matches "FooBar" (score: 85), "FizBuz" (score: 60), "file_backup" (score: 75)
+ *
+ * Bonus: Add searchInFiles(files: {name: string, content: string}[], query: string)
+ * that returns results grouped by file with context snippets.
+ */
+
+export interface SearchOptions {
+  caseSensitive?: boolean;
+  wholeWord?: boolean;
+  fuzzy?: boolean;
+  maxDistance?: number;  // For fuzzy: max chars between query letters
+}
+
+export interface SearchResult {
+  start: number;
+  end: number;
+  score: number;  // 100 for exact match, lower for fuzzy
+}
+
+export interface FileSearchResult {
+  file: string;
+  matches: Array<{ line: number; text: string; positions: SearchResult[] }>;
+}
+
+export type ReplaceFn = (match: string, index: number) => string;
+
+export class SearchEngine {
+  constructor(options?: SearchOptions) {
+    // YOUR CODE HERE
+  }
+
+  search(text: string, query: string): SearchResult[] {
+    // YOUR CODE HERE
+    return [];
+  }
+
+  highlight(text: string, results: SearchResult[], tag: string = 'mark'): string {
+    // YOUR CODE HERE
+    return text;
+  }
+
+  replace(text: string, query: string, replacement: string | ReplaceFn): string {
+    // YOUR CODE HERE
+    return text;
+  }
+
+  /**
+   * Bonus: Search across multiple files with context
+   */
+  searchInFiles(
+    files: Array<{ name: string; content: string }>,
+    query: string,
+    contextLines: number = 1
+  ): FileSearchResult[] {
+    // YOUR CODE HERE
+    return [];
+  }
+}
+
+/**
+ * Bonus: Implement Boyer-Moore string search for fast exact matching
+ */
+export function boyerMooreSearch(text: string, pattern: string): number[] {
+  // YOUR CODE HERE
+  return [];
+}
+]==],
+    tests = [==[
+import { describe, it, expect } from 'vitest';
+import { SearchEngine, boyerMooreSearch } from './challenge';
+
+describe('SearchEngine - Exact Match', () => {
+  const engine = new SearchEngine({ caseSensitive: false });
+
+  it('finds single occurrence', () => {
+    const results = engine.search('hello world', 'world');
+    expect(results).toHaveLength(1);
+    expect(results[0]).toMatchObject({ start: 6, end: 11, score: 100 });
+  });
+
+  it('finds multiple occurrences', () => {
+    const results = engine.search('test test test', 'test');
+    expect(results).toHaveLength(3);
+    expect(results[0].start).toBe(0);
+    expect(results[1].start).toBe(5);
+    expect(results[2].start).toBe(10);
+  });
+
+  it('case insensitive by default', () => {
+    const results = engine.search('Hello HELLO hello', 'hello');
+    expect(results).toHaveLength(3);
+  });
+
+  it('no matches returns empty array', () => {
+    expect(engine.search('foo bar', 'baz')).toEqual([]);
+  });
+
+  it('empty query returns empty', () => {
+    expect(engine.search('text', '')).toEqual([]);
+  });
+});
+
+describe('SearchEngine - Case Sensitivity', () => {
+  it('case sensitive search', () => {
+    const engine = new SearchEngine({ caseSensitive: true });
+    const results = engine.search('Hello hello HELLO', 'hello');
+    expect(results).toHaveLength(1);
+    expect(results[0].start).toBe(6);
+  });
+
+  it('case sensitive finds exact case only', () => {
+    const engine = new SearchEngine({ caseSensitive: true });
+    expect(engine.search('Test', 'test')).toHaveLength(0);
+    expect(engine.search('test', 'test')).toHaveLength(1);
+  });
+});
+
+describe('SearchEngine - Whole Word', () => {
+  it('whole word matches only complete words', () => {
+    const engine = new SearchEngine({ wholeWord: true });
+    const results = engine.search('test testing tested', 'test');
+    expect(results).toHaveLength(1);
+    expect(results[0]).toMatchObject({ start: 0, end: 4 });
+  });
+
+  it('whole word respects punctuation boundaries', () => {
+    const engine = new SearchEngine({ wholeWord: true });
+    const results = engine.search('test, test. test!', 'test');
+    expect(results).toHaveLength(3);
+  });
+
+  it('whole word at start and end', () => {
+    const engine = new SearchEngine({ wholeWord: true });
+    expect(engine.search('test in test', 'test')).toHaveLength(2);
+  });
+
+  it('whole word does not match substrings', () => {
+    const engine = new SearchEngine({ wholeWord: true });
+    expect(engine.search('testing', 'test')).toHaveLength(0);
+  });
+});
+
+describe('SearchEngine - Fuzzy Search', () => {
+  const engine = new SearchEngine({ fuzzy: true });
+
+  it('fuzzy matches with skipped chars', () => {
+    const results = engine.search('FooBar', 'fb');
+    expect(results.length).toBeGreaterThan(0);
+    expect(results[0].score).toBeLessThan(100);
+    expect(results[0].score).toBeGreaterThan(50);
+  });
+
+  it('fuzzy scores consecutive matches higher', () => {
+    const r1 = engine.search('foobar', 'fb')[0];
+    const r2 = engine.search('foobazr', 'fb')[0];
+    expect(r1.score).toBeGreaterThan(r2.score);
+  });
+
+  it('fuzzy matches start-of-word bonus', () => {
+    const r1 = engine.search('foo_bar', 'fb')[0];
+    const r2 = engine.search('fzoobar', 'fb')[0];
+    expect(r1.score).toBeGreaterThan(r2.score);
+  });
+
+  it('fuzzy requires chars in order', () => {
+    expect(engine.search('abc', 'cba')).toHaveLength(0);
+  });
+
+  it('fuzzy multiple matches', () => {
+    const results = engine.search('FooBar FizzBuzz', 'fb');
+    expect(results.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('fuzzy exact match gets perfect score', () => {
+    const results = engine.search('test', 'test');
+    expect(results[0].score).toBe(100);
+  });
+
+  it('fuzzy handles case insensitivity', () => {
+    const results = engine.search('FooBar', 'fb');
+    expect(results.length).toBeGreaterThan(0);
+  });
+});
+
+describe('Highlight', () => {
+  const engine = new SearchEngine();
+
+  it('wraps single match', () => {
+    const results = engine.search('hello world', 'world');
+    const highlighted = engine.highlight('hello world', results);
+    expect(highlighted).toBe('hello <mark>world</mark>');
+  });
+
+  it('wraps multiple matches', () => {
+    const results = engine.search('test test', 'test');
+    const highlighted = engine.highlight('test test', results);
+    expect(highlighted).toBe('<mark>test</mark> <mark>test</mark>');
+  });
+
+  it('custom tag', () => {
+    const results = engine.search('foo', 'foo');
+    const highlighted = engine.highlight('foo', results, 'strong');
+    expect(highlighted).toBe('<strong>foo</strong>');
+  });
+
+  it('handles overlapping ranges by merging', () => {
+    const results = [
+      { start: 0, end: 5, score: 100 },
+      { start: 3, end: 8, score: 100 },
+    ];
+    const highlighted = engine.highlight('hello world', results);
+    expect(highlighted).toBe('<mark>hello wo</mark>rld');
+  });
+
+  it('empty results returns original text', () => {
+    expect(engine.highlight('text', [])).toBe('text');
+  });
+
+  it('preserves text outside matches', () => {
+    const results = engine.search('a b c d e', 'b');
+    const highlighted = engine.highlight('a b c d e', results);
+    expect(highlighted).toBe('a <mark>b</mark> c d e');
+  });
+});
+
+describe('Replace', () => {
+  const engine = new SearchEngine();
+
+  it('replaces single match', () => {
+    const result = engine.replace('hello world', 'world', 'universe');
+    expect(result).toBe('hello universe');
+  });
+
+  it('replaces all matches', () => {
+    const result = engine.replace('test test test', 'test', 'TEST');
+    expect(result).toBe('TEST TEST TEST');
+  });
+
+  it('replace with function', () => {
+    const result = engine.replace('a b c', /\w/g as any, (m, i) => `${i}`);
+    expect(result.split(' ').length).toBe(3);
+  });
+
+  it('replace function receives match and index', () => {
+    const calls: Array<[string, number]> = [];
+    engine.replace('x x x', 'x', (m, i) => { calls.push([m, i]); return m; });
+    expect(calls).toHaveLength(3);
+    expect(calls[0][0]).toBe('x');
+    expect(calls[0][1]).toBe(0);
+  });
+
+  it('replace with empty string removes matches', () => {
+    const result = engine.replace('a b c', ' ', '');
+    expect(result).toBe('abc');
+  });
+
+  it('no matches returns original', () => {
+    expect(engine.replace('foo', 'bar', 'baz')).toBe('foo');
+  });
+});
+
+describe('File Search', () => {
+  const engine = new SearchEngine();
+  const files = [
+    { name: 'a.txt', content: 'line one\nline two\nline three\nline four' },
+    { name: 'b.txt', content: 'first\nsecond\nthird' },
+  ];
+
+  it('finds matches across files', () => {
+    const results = engine.searchInFiles(files, 'line');
+    expect(results).toHaveLength(1);
+    expect(results[0].file).toBe('a.txt');
+    expect(results[0].matches.length).toBeGreaterThan(0);
+  });
+
+  it('includes line numbers', () => {
+    const results = engine.searchInFiles(files, 'two');
+    expect(results[0].matches[0].line).toBe(2);
+  });
+
+  it('provides context lines', () => {
+    const results = engine.searchInFiles(files, 'two', 1);
+    const match = results[0].matches[0];
+    expect(match.text).toContain('two');
+  });
+
+  it('groups by file', () => {
+    const results = engine.searchInFiles([
+      { name: 'x.txt', content: 'test\ntest' },
+      { name: 'y.txt', content: 'test' },
+    ], 'test');
+    expect(results).toHaveLength(2);
+  });
+
+  it('no matches returns empty', () => {
+    expect(engine.searchInFiles(files, 'xyz')).toEqual([]);
+  });
+});
+
+describe('Boyer-Moore', () => {
+  it('finds all occurrences', () => {
+    const positions = boyerMooreSearch('ababcababa', 'aba');
+    expect(positions).toEqual([0, 5, 7]);
+  });
+
+  it('single occurrence', () => {
+    expect(boyerMooreSearch('hello world', 'world')).toEqual([6]);
+  });
+
+  it('no match', () => {
+    expect(boyerMooreSearch('foo', 'bar')).toEqual([]);
+  });
+
+  it('pattern longer than text', () => {
+    expect(boyerMooreSearch('hi', 'hello')).toEqual([]);
+  });
+
+  it('full text match', () => {
+    expect(boyerMooreSearch('test', 'test')).toEqual([0]);
+  });
+
+  it('overlapping patterns', () => {
+    expect(boyerMooreSearch('aaa', 'aa')).toEqual([0, 1]);
+  });
+
+  it('stress: large text', () => {
+    const text = 'x'.repeat(10000) + 'needle' + 'x'.repeat(10000);
+    const positions = boyerMooreSearch(text, 'needle');
+    expect(positions).toEqual([10000]);
+  });
+});
+
+describe('Integration', () => {
+  it('fuzzy search + highlight', () => {
+    const engine = new SearchEngine({ fuzzy: true });
+    const results = engine.search('FooBar', 'fb');
+    const highlighted = engine.highlight('FooBar', results);
+    expect(highlighted).toContain('<mark>');
+  });
+
+  it('whole word + replace', () => {
+    const engine = new SearchEngine({ wholeWord: true });
+    const result = engine.replace('test testing tested test', 'test', 'TEST');
+    expect(result).toBe('TEST testing tested TEST');
+  });
+
+  it('case sensitive + file search', () => {
+    const engine = new SearchEngine({ caseSensitive: true });
+    const files = [{ name: 'a.txt', content: 'Test\ntest\nTEST' }];
+    const results = engine.searchInFiles(files, 'test');
+    expect(results[0].matches).toHaveLength(1);
+  });
+
+  it('complex multi-file search with context', () => {
+    const engine = new SearchEngine();
+    const files = [
+      { name: 'src/index.ts', content: 'import { foo } from "./foo";\nfoo();\nconsole.log(foo);' },
+      { name: 'src/foo.ts', content: 'export function foo() {\n  return 42;\n}' },
+    ];
+    const results = engine.searchInFiles(files, 'foo', 1);
+    expect(results.length).toBeGreaterThan(0);
+    expect(results.some(r => r.file.includes('index'))).toBe(true);
+  });
+});
+
+describe('Edge Cases', () => {
+  const engine = new SearchEngine();
+
+  it('unicode characters', () => {
+    const results = engine.search('Hello 世界', '世界');
+    expect(results).toHaveLength(1);
+  });
+
+  it('special regex chars treated literally', () => {
+    const results = engine.search('test.file', '.');
+    expect(results).toHaveLength(1);
+  });
+
+  it('very long query', () => {
+    const query = 'a'.repeat(1000);
+    expect(engine.search('test', query)).toEqual([]);
+  });
+
+  it('empty text', () => {
+    expect(engine.search('', 'x')).toEqual([]);
+  });
+
+  it('query at start', () => {
+    const results = engine.search('hello world', 'hello');
+    expect(results[0].start).toBe(0);
+  });
+
+  it('query at end', () => {
+    const results = engine.search('hello world', 'world');
+    expect(results[0].end).toBe(11);
+  });
+});
+]==],
+  },
 }
 
 --- Deterministic challenge selection based on date.
