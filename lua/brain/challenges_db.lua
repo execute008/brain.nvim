@@ -6989,3 +6989,377 @@ function M.get_challenge_for_date(date_str)
 end
 
 return M
+  {
+    name = "Sorted Set (Redis-style)",
+    difficulty = "hard",
+    stub = [==[
+/**
+ * Sorted Set (Redis-style)
+ *
+ * Implement a sorted set data structure similar to Redis ZSET.
+ * Elements are unique strings with numeric scores. The set is sorted by score,
+ * with ties broken by lexicographic order of the element.
+ *
+ * SortedSet class:
+ * - add(member: string, score: number): boolean
+ *   Add or update a member with a score. Returns true if new member, false if update.
+ *
+ * - remove(member: string): boolean
+ *   Remove a member. Returns true if it existed, false otherwise.
+ *
+ * - score(member: string): number | null
+ *   Get the score of a member, or null if not found.
+ *
+ * - rank(member: string): number | null
+ *   Get the 0-based rank (position in sorted order), or null if not found.
+ *
+ * - range(start: number, stop: number): string[]
+ *   Get members by rank range [start, stop] (0-indexed, inclusive).
+ *   Negative indices count from the end (-1 = last element).
+ *
+ * - rangeByScore(min: number, max: number, limit?: number): string[]
+ *   Get members with scores in [min, max], limited to `limit` results.
+ *
+ * - count(): number
+ *   Total number of members.
+ *
+ * Bonus: Implement incrementBy(member, delta) and removeRangeByScore(min, max).
+ *
+ * Implementation notes:
+ * - Maintain O(log n) add/remove using a balanced tree or skip list approach
+ * - For simplicity, you may use an array + binary search (O(n) inserts but easier)
+ * - Real Redis uses a skip list + hash map hybrid
+ */
+
+export class SortedSet {
+  constructor() {
+    // YOUR CODE HERE
+  }
+
+  add(member: string, score: number): boolean {
+    // YOUR CODE HERE
+    return false;
+  }
+
+  remove(member: string): boolean {
+    // YOUR CODE HERE
+    return false;
+  }
+
+  score(member: string): number | null {
+    // YOUR CODE HERE
+    return null;
+  }
+
+  rank(member: string): number | null {
+    // YOUR CODE HERE
+    return null;
+  }
+
+  range(start: number, stop: number): string[] {
+    // YOUR CODE HERE
+    return [];
+  }
+
+  rangeByScore(min: number, max: number, limit?: number): string[] {
+    // YOUR CODE HERE
+    return [];
+  }
+
+  count(): number {
+    // YOUR CODE HERE
+    return 0;
+  }
+
+  /**
+   * Bonus: Increment a member's score by delta.
+   * If member doesn't exist, treat initial score as 0.
+   */
+  incrementBy(member: string, delta: number): number {
+    // YOUR CODE HERE
+    return 0;
+  }
+
+  /**
+   * Bonus: Remove all members with scores in [min, max].
+   * Returns the count of removed members.
+   */
+  removeRangeByScore(min: number, max: number): number {
+    // YOUR CODE HERE
+    return 0;
+  }
+}
+]==],
+    tests = [==[
+import { describe, it, expect } from 'vitest';
+import { SortedSet } from './challenge';
+
+describe('SortedSet', () => {
+  it('add new member returns true', () => {
+    const zset = new SortedSet();
+    expect(zset.add('alice', 100)).toBe(true);
+    expect(zset.count()).toBe(1);
+  });
+
+  it('update existing member returns false', () => {
+    const zset = new SortedSet();
+    zset.add('alice', 100);
+    expect(zset.add('alice', 200)).toBe(false);
+    expect(zset.count()).toBe(1);
+  });
+
+  it('score returns correct value', () => {
+    const zset = new SortedSet();
+    zset.add('alice', 100);
+    expect(zset.score('alice')).toBe(100);
+  });
+
+  it('score returns null for missing member', () => {
+    const zset = new SortedSet();
+    expect(zset.score('nobody')).toBe(null);
+  });
+
+  it('remove existing member returns true', () => {
+    const zset = new SortedSet();
+    zset.add('alice', 100);
+    expect(zset.remove('alice')).toBe(true);
+    expect(zset.count()).toBe(0);
+  });
+
+  it('remove non-existent member returns false', () => {
+    const zset = new SortedSet();
+    expect(zset.remove('nobody')).toBe(false);
+  });
+
+  it('rank returns position in sorted order', () => {
+    const zset = new SortedSet();
+    zset.add('alice', 100);
+    zset.add('bob', 200);
+    zset.add('charlie', 150);
+    expect(zset.rank('alice')).toBe(0);
+    expect(zset.rank('charlie')).toBe(1);
+    expect(zset.rank('bob')).toBe(2);
+  });
+
+  it('rank returns null for missing member', () => {
+    const zset = new SortedSet();
+    expect(zset.rank('nobody')).toBe(null);
+  });
+
+  it('range returns members in order', () => {
+    const zset = new SortedSet();
+    zset.add('alice', 100);
+    zset.add('bob', 200);
+    zset.add('charlie', 150);
+    expect(zset.range(0, 2)).toEqual(['alice', 'charlie', 'bob']);
+  });
+
+  it('range with negative indices', () => {
+    const zset = new SortedSet();
+    zset.add('a', 1);
+    zset.add('b', 2);
+    zset.add('c', 3);
+    expect(zset.range(-2, -1)).toEqual(['b', 'c']);
+  });
+
+  it('range subset', () => {
+    const zset = new SortedSet();
+    zset.add('a', 1);
+    zset.add('b', 2);
+    zset.add('c', 3);
+    zset.add('d', 4);
+    expect(zset.range(1, 2)).toEqual(['b', 'c']);
+  });
+
+  it('rangeByScore returns members within score range', () => {
+    const zset = new SortedSet();
+    zset.add('alice', 100);
+    zset.add('bob', 200);
+    zset.add('charlie', 150);
+    zset.add('dave', 175);
+    expect(zset.rangeByScore(100, 175)).toEqual(['alice', 'charlie', 'dave']);
+  });
+
+  it('rangeByScore with limit', () => {
+    const zset = new SortedSet();
+    zset.add('a', 1);
+    zset.add('b', 2);
+    zset.add('c', 3);
+    zset.add('d', 4);
+    expect(zset.rangeByScore(1, 10, 2)).toEqual(['a', 'b']);
+  });
+
+  it('rangeByScore no matches', () => {
+    const zset = new SortedSet();
+    zset.add('a', 1);
+    expect(zset.rangeByScore(10, 20)).toEqual([]);
+  });
+
+  it('lexicographic tie-breaking', () => {
+    const zset = new SortedSet();
+    zset.add('zebra', 100);
+    zset.add('apple', 100);
+    zset.add('banana', 100);
+    expect(zset.range(0, 2)).toEqual(['apple', 'banana', 'zebra']);
+  });
+
+  it('update changes rank', () => {
+    const zset = new SortedSet();
+    zset.add('alice', 100);
+    zset.add('bob', 200);
+    expect(zset.rank('alice')).toBe(0);
+    zset.add('alice', 300);
+    expect(zset.rank('alice')).toBe(1);
+  });
+
+  it('count reflects current size', () => {
+    const zset = new SortedSet();
+    expect(zset.count()).toBe(0);
+    zset.add('a', 1);
+    zset.add('b', 2);
+    expect(zset.count()).toBe(2);
+    zset.remove('a');
+    expect(zset.count()).toBe(1);
+  });
+
+  it('empty range', () => {
+    const zset = new SortedSet();
+    expect(zset.range(0, 10)).toEqual([]);
+  });
+
+  it('range out of bounds', () => {
+    const zset = new SortedSet();
+    zset.add('a', 1);
+    expect(zset.range(10, 20)).toEqual([]);
+  });
+
+  it('incrementBy on new member', () => {
+    const zset = new SortedSet();
+    const newScore = zset.incrementBy('alice', 50);
+    expect(newScore).toBe(50);
+    expect(zset.score('alice')).toBe(50);
+  });
+
+  it('incrementBy on existing member', () => {
+    const zset = new SortedSet();
+    zset.add('alice', 100);
+    const newScore = zset.incrementBy('alice', 25);
+    expect(newScore).toBe(125);
+    expect(zset.score('alice')).toBe(125);
+  });
+
+  it('incrementBy negative delta', () => {
+    const zset = new SortedSet();
+    zset.add('alice', 100);
+    const newScore = zset.incrementBy('alice', -30);
+    expect(newScore).toBe(70);
+  });
+
+  it('removeRangeByScore removes matching members', () => {
+    const zset = new SortedSet();
+    zset.add('a', 10);
+    zset.add('b', 20);
+    zset.add('c', 30);
+    zset.add('d', 40);
+    const removed = zset.removeRangeByScore(20, 30);
+    expect(removed).toBe(2);
+    expect(zset.count()).toBe(2);
+    expect(zset.range(0, -1)).toEqual(['a', 'd']);
+  });
+
+  it('removeRangeByScore no matches', () => {
+    const zset = new SortedSet();
+    zset.add('a', 10);
+    expect(zset.removeRangeByScore(50, 100)).toBe(0);
+    expect(zset.count()).toBe(1);
+  });
+
+  it('stress: many members', () => {
+    const zset = new SortedSet();
+    for (let i = 0; i < 1000; i++) {
+      zset.add(`user${i}`, Math.random() * 1000);
+    }
+    expect(zset.count()).toBe(1000);
+    const top10 = zset.range(0, 9);
+    expect(top10.length).toBe(10);
+  });
+
+  it('stress: repeated updates', () => {
+    const zset = new SortedSet();
+    zset.add('player', 0);
+    for (let i = 0; i < 100; i++) {
+      zset.incrementBy('player', 1);
+    }
+    expect(zset.score('player')).toBe(100);
+  });
+
+  it('range clamps correctly', () => {
+    const zset = new SortedSet();
+    zset.add('a', 1);
+    zset.add('b', 2);
+    zset.add('c', 3);
+    expect(zset.range(-100, 100)).toEqual(['a', 'b', 'c']);
+  });
+
+  it('identical scores with many members', () => {
+    const zset = new SortedSet();
+    const names = ['zoe', 'alice', 'charlie', 'bob'];
+    names.forEach(n => zset.add(n, 100));
+    expect(zset.range(0, -1)).toEqual(['alice', 'bob', 'charlie', 'zoe']);
+  });
+
+  it('score boundary inclusion', () => {
+    const zset = new SortedSet();
+    zset.add('a', 10);
+    zset.add('b', 20);
+    zset.add('c', 30);
+    expect(zset.rangeByScore(10, 20)).toEqual(['a', 'b']);
+    expect(zset.rangeByScore(15, 25)).toEqual(['b']);
+  });
+
+  it('negative scores', () => {
+    const zset = new SortedSet();
+    zset.add('a', -10);
+    zset.add('b', 0);
+    zset.add('c', 10);
+    expect(zset.range(0, 2)).toEqual(['a', 'b', 'c']);
+    expect(zset.rangeByScore(-5, 5)).toEqual(['b']);
+  });
+
+  it('decimal scores', () => {
+    const zset = new SortedSet();
+    zset.add('a', 1.5);
+    zset.add('b', 1.7);
+    zset.add('c', 1.3);
+    expect(zset.range(0, -1)).toEqual(['c', 'a', 'b']);
+  });
+
+  it('remove updates ranks correctly', () => {
+    const zset = new SortedSet();
+    zset.add('a', 1);
+    zset.add('b', 2);
+    zset.add('c', 3);
+    zset.remove('b');
+    expect(zset.rank('a')).toBe(0);
+    expect(zset.rank('c')).toBe(1);
+  });
+
+  it('empty set operations', () => {
+    const zset = new SortedSet();
+    expect(zset.count()).toBe(0);
+    expect(zset.range(0, 10)).toEqual([]);
+    expect(zset.rangeByScore(0, 100)).toEqual([]);
+    expect(zset.rank('any')).toBe(null);
+    expect(zset.score('any')).toBe(null);
+  });
+
+  it('single member operations', () => {
+    const zset = new SortedSet();
+    zset.add('solo', 42);
+    expect(zset.rank('solo')).toBe(0);
+    expect(zset.range(0, 0)).toEqual(['solo']);
+    expect(zset.rangeByScore(40, 50)).toEqual(['solo']);
+  });
+});
+]==],
+  },
