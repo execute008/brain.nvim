@@ -7362,4 +7362,463 @@ describe('SortedSet', () => {
   });
 });
 ]==],
+  {
+    name = "Concurrent Task Pool with Priority",
+    difficulty = "medium",
+    stub = [==[
+/**
+ * Concurrent Task Pool with Priority
+ *
+ * Implement a task pool that manages concurrent execution with priority queuing.
+ * Like Promise.all but with concurrency limits and priority scheduling.
+ *
+ * TaskPool class:
+ * - constructor(concurrency: number)
+ *   Maximum number of tasks that can run simultaneously
+ *
+ * - add<T>(task: () => Promise<T>, priority?: number): Promise<T>
+ *   Add a task to the pool. Returns a promise that resolves with the task result.
+ *   Higher priority tasks run first (default: 0). Same priority → FIFO order.
+ *
+ * - size(): number
+ *   Current number of running + queued tasks
+ *
+ * - drain(): Promise<void>
+ *   Wait for all queued and running tasks to complete
+ *
+ * - pause(): void
+ *   Stop starting new tasks (running tasks continue)
+ *
+ * - resume(): void
+ *   Resume starting new tasks from the queue
+ *
+ * - clear(): void
+ *   Cancel all queued tasks (running tasks continue)
+ *
+ * - get running(): number
+ *   Count of currently executing tasks
+ *
+ * - get queued(): number
+ *   Count of tasks waiting in the queue
+ *
+ * Bonus: Add retry logic with exponential backoff:
+ *   - addWithRetry(task, options: { retries: number, backoffMs: number })
+ */
+
+export class TaskPool {
+  constructor(concurrency: number) {
+    // YOUR CODE HERE
+  }
+
+  add<T>(task: () => Promise<T>, priority?: number): Promise<T> {
+    // YOUR CODE HERE
+    return Promise.reject(new Error('Not implemented'));
+  }
+
+  size(): number {
+    // YOUR CODE HERE
+    return 0;
+  }
+
+  drain(): Promise<void> {
+    // YOUR CODE HERE
+    return Promise.resolve();
+  }
+
+  pause(): void {
+    // YOUR CODE HERE
+  }
+
+  resume(): void {
+    // YOUR CODE HERE
+  }
+
+  clear(): void {
+    // YOUR CODE HERE
+  }
+
+  get running(): number {
+    // YOUR CODE HERE
+    return 0;
+  }
+
+  get queued(): number {
+    // YOUR CODE HERE
+    return 0;
+  }
+
+  /**
+   * Bonus: Add task with automatic retry on failure
+   */
+  addWithRetry<T>(
+    task: () => Promise<T>,
+    options: { retries: number; backoffMs: number; priority?: number }
+  ): Promise<T> {
+    // YOUR CODE HERE
+    return Promise.reject(new Error('Not implemented'));
+  }
+}
+]==],
+    tests = [==[
+import { describe, it, expect, vi } from 'vitest';
+import { TaskPool } from './challenge';
+
+const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
+
+describe('TaskPool', () => {
+  it('runs tasks up to concurrency limit', async () => {
+    const pool = new TaskPool(2);
+    let running = 0;
+    let maxRunning = 0;
+
+    const makeTask = () => async () => {
+      running++;
+      maxRunning = Math.max(maxRunning, running);
+      await delay(20);
+      running--;
+    };
+
+    await Promise.all([
+      pool.add(makeTask()),
+      pool.add(makeTask()),
+      pool.add(makeTask()),
+      pool.add(makeTask()),
+    ]);
+
+    expect(maxRunning).toBe(2);
+  });
+
+  it('returns task result', async () => {
+    const pool = new TaskPool(2);
+    const result = await pool.add(async () => 42);
+    expect(result).toBe(42);
+  });
+
+  it('propagates task errors', async () => {
+    const pool = new TaskPool(2);
+    await expect(pool.add(async () => {
+      throw new Error('task failed');
+    })).rejects.toThrow('task failed');
+  });
+
+  it('priority tasks run before lower priority', async () => {
+    const pool = new TaskPool(1);
+    const order: string[] = [];
+
+    // Block pool with long task
+    const blocker = pool.add(async () => {
+      await delay(50);
+      order.push('blocker');
+    });
+
+    // Queue tasks with different priorities
+    await delay(5); // Ensure blocker is running
+    const low = pool.add(async () => { order.push('low'); }, 0);
+    const high = pool.add(async () => { order.push('high'); }, 10);
+    const medium = pool.add(async () => { order.push('medium'); }, 5);
+
+    await Promise.all([blocker, low, high, medium]);
+    expect(order).toEqual(['blocker', 'high', 'medium', 'low']);
+  });
+
+  it('same priority maintains FIFO order', async () => {
+    const pool = new TaskPool(1);
+    const order: number[] = [];
+
+    const blocker = pool.add(async () => { await delay(20); });
+    await delay(5);
+
+    const tasks = [1, 2, 3, 4].map(i =>
+      pool.add(async () => { order.push(i); }, 5)
+    );
+
+    await blocker;
+    await Promise.all(tasks);
+    expect(order).toEqual([1, 2, 3, 4]);
+  });
+
+  it('size returns total tasks', async () => {
+    const pool = new TaskPool(1);
+    let resolve1: () => void;
+    const task1 = new Promise<void>(r => { resolve1 = r; });
+
+    pool.add(async () => { await task1; });
+    pool.add(async () => {});
+    pool.add(async () => {});
+
+    await delay(5);
+    expect(pool.size()).toBe(3);
+
+    resolve1!();
+    await delay(5);
+    expect(pool.size()).toBeLessThan(3);
+  });
+
+  it('running and queued counts', async () => {
+    const pool = new TaskPool(2);
+    let resolve: () => void;
+    const blocker = new Promise<void>(r => { resolve = r; });
+
+    pool.add(async () => { await blocker; });
+    pool.add(async () => { await blocker; });
+    pool.add(async () => {});
+    pool.add(async () => {});
+
+    await delay(10);
+    expect(pool.running).toBe(2);
+    expect(pool.queued).toBe(2);
+
+    resolve!();
+    await delay(10);
+    expect(pool.running).toBe(0);
+    expect(pool.queued).toBe(0);
+  });
+
+  it('drain waits for all tasks', async () => {
+    const pool = new TaskPool(2);
+    const completed: number[] = [];
+
+    pool.add(async () => { await delay(30); completed.push(1); });
+    pool.add(async () => { await delay(20); completed.push(2); });
+    pool.add(async () => { await delay(10); completed.push(3); });
+
+    await pool.drain();
+    expect(completed.sort()).toEqual([1, 2, 3]);
+  });
+
+  it('pause stops starting new tasks', async () => {
+    const pool = new TaskPool(1);
+    const started: string[] = [];
+
+    pool.add(async () => {
+      started.push('first');
+      await delay(20);
+    });
+
+    await delay(5);
+    pool.pause();
+
+    pool.add(async () => { started.push('second'); });
+
+    await delay(50);
+    expect(started).toEqual(['first']);
+  });
+
+  it('resume restarts queue processing', async () => {
+    const pool = new TaskPool(1);
+    const completed: string[] = [];
+
+    pool.add(async () => { await delay(10); completed.push('first'); });
+    await delay(5);
+    pool.pause();
+
+    const second = pool.add(async () => { completed.push('second'); });
+
+    await delay(30);
+    expect(completed).toEqual(['first']);
+
+    pool.resume();
+    await second;
+    expect(completed).toEqual(['first', 'second']);
+  });
+
+  it('clear removes queued tasks', async () => {
+    const pool = new TaskPool(1);
+    const executed: number[] = [];
+
+    const running = pool.add(async () => {
+      await delay(30);
+      executed.push(1);
+    });
+
+    await delay(5);
+    pool.add(async () => { executed.push(2); });
+    pool.add(async () => { executed.push(3); });
+
+    pool.clear();
+    await running;
+    await delay(50);
+
+    expect(executed).toEqual([1]);
+  });
+
+  it('clear rejects pending promises', async () => {
+    const pool = new TaskPool(1);
+
+    pool.add(async () => { await delay(20); });
+    await delay(5);
+
+    const pending = pool.add(async () => 'result');
+    pool.clear();
+
+    await expect(pending).rejects.toThrow();
+  });
+
+  it('handles task that throws immediately', async () => {
+    const pool = new TaskPool(2);
+    await expect(pool.add(async () => {
+      throw new Error('immediate');
+    })).rejects.toThrow('immediate');
+  });
+
+  it('continues after task error', async () => {
+    const pool = new TaskPool(1);
+    const results: (string | Error)[] = [];
+
+    const p1 = pool.add(async () => { throw new Error('fail'); })
+      .catch(e => { results.push(e as Error); });
+    const p2 = pool.add(async () => { results.push('success'); });
+
+    await Promise.all([p1, p2]);
+    expect(results[0]).toBeInstanceOf(Error);
+    expect(results[1]).toBe('success');
+  });
+
+  it('zero concurrency throws', () => {
+    expect(() => new TaskPool(0)).toThrow();
+  });
+
+  it('negative concurrency throws', () => {
+    expect(() => new TaskPool(-1)).toThrow();
+  });
+
+  it('stress: many tasks', async () => {
+    const pool = new TaskPool(10);
+    const tasks = Array.from({ length: 500 }, (_, i) =>
+      pool.add(async () => i)
+    );
+    const results = await Promise.all(tasks);
+    expect(results).toHaveLength(500);
+    expect(results[250]).toBe(250);
+  });
+
+  it('stress: high priority surge', async () => {
+    const pool = new TaskPool(2);
+    const order: number[] = [];
+
+    const blocker = pool.add(async () => { await delay(50); });
+
+    await delay(5);
+    for (let i = 0; i < 20; i++) {
+      pool.add(async () => { order.push(i); }, i % 2 === 0 ? 10 : 1);
+    }
+
+    await pool.drain();
+    // First 10 should be high priority (even indices)
+    const first10 = order.slice(0, 10);
+    const allEven = first10.every(n => n % 2 === 0);
+    expect(allEven).toBe(true);
+  });
+
+  it('addWithRetry succeeds after failures', async () => {
+    const pool = new TaskPool(1);
+    let attempts = 0;
+
+    const result = await pool.addWithRetry(
+      async () => {
+        attempts++;
+        if (attempts < 3) throw new Error('retry me');
+        return 'success';
+      },
+      { retries: 3, backoffMs: 10 }
+    );
+
+    expect(result).toBe('success');
+    expect(attempts).toBe(3);
+  });
+
+  it('addWithRetry fails after max retries', async () => {
+    const pool = new TaskPool(1);
+    let attempts = 0;
+
+    await expect(pool.addWithRetry(
+      async () => {
+        attempts++;
+        throw new Error('always fails');
+      },
+      { retries: 2, backoffMs: 5 }
+    )).rejects.toThrow('always fails');
+
+    expect(attempts).toBe(3); // initial + 2 retries
+  });
+
+  it('addWithRetry respects backoff timing', async () => {
+    const pool = new TaskPool(1);
+    const timestamps: number[] = [];
+
+    await pool.addWithRetry(
+      async () => {
+        timestamps.push(Date.now());
+        if (timestamps.length < 3) throw new Error('retry');
+        return 'done';
+      },
+      { retries: 3, backoffMs: 50 }
+    ).catch(() => {});
+
+    // First retry after ~50ms, second after ~100ms (exponential)
+    const gaps = timestamps.slice(1).map((t, i) => t - timestamps[i]);
+    expect(gaps[0]).toBeGreaterThanOrEqual(40);
+    expect(gaps[1]).toBeGreaterThanOrEqual(90);
+  });
+
+  it('addWithRetry with priority', async () => {
+    const pool = new TaskPool(1);
+    const order: string[] = [];
+
+    const blocker = pool.add(async () => { await delay(30); });
+
+    await delay(5);
+    const low = pool.addWithRetry(
+      async () => { order.push('low'); },
+      { retries: 0, backoffMs: 10, priority: 1 }
+    );
+    const high = pool.addWithRetry(
+      async () => { order.push('high'); },
+      { retries: 0, backoffMs: 10, priority: 10 }
+    );
+
+    await Promise.all([blocker, low, high]);
+    expect(order).toEqual(['high', 'low']);
+  });
+
+  it('drain after pause waits correctly', async () => {
+    const pool = new TaskPool(2);
+    const completed: number[] = [];
+
+    pool.add(async () => { await delay(30); completed.push(1); });
+    pool.pause();
+
+    pool.add(async () => { await delay(10); completed.push(2); });
+
+    // Drain should wait even though queue is paused
+    const drainPromise = pool.drain();
+    await delay(50);
+    expect(completed).toEqual([1]);
+
+    pool.resume();
+    await drainPromise;
+    expect(completed.sort()).toEqual([1, 2]);
+  });
+
+  it('concurrent concurrency changes', async () => {
+    const pool = new TaskPool(5);
+    const running: number[] = [];
+
+    const tasks = Array.from({ length: 20 }, (_, i) =>
+      pool.add(async () => {
+        running.push(i);
+        await delay(50);
+        running.splice(running.indexOf(i), 1);
+      })
+    );
+
+    await delay(10);
+    expect(pool.running).toBeLessThanOrEqual(5);
+
+    await Promise.all(tasks);
+    expect(pool.running).toBe(0);
+  });
+});
+]==],
   },
+}
