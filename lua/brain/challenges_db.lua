@@ -7821,4 +7821,219 @@ describe('TaskPool', () => {
 });
 ]==],
   },
+
+  {
+    name = "Simple JSON Path Query",
+    difficulty = "medium",
+    stub = [==[
+/**
+ * Simple JSON Path Query
+ *
+ * Implement a lightweight JSON path query engine similar to JSONPath or jq.
+ * Navigate nested objects/arrays using a simplified dot notation and array indexing.
+ *
+ * Query syntax:
+ * - "name" — get property `name` from object
+ * - "users.0" — get first element of `users` array
+ * - "users.0.email" — chain access
+ * - "*.name" — get `name` from ALL items in an array/object (wildcard)
+ * - "users[name=Alice]" — filter array by property match (bonus)
+ *
+ * Implement:
+ * - query(data: any, path: string): any
+ *   Returns the value at the path, or undefined if not found.
+ *   For wildcard queries, return an array of matches.
+ *
+ * Examples:
+ *   query({ user: { name: "Bob" } }, "user.name") → "Bob"
+ *   query({ items: [{ id: 1 }, { id: 2 }] }, "items.0.id") → 1
+ *   query({ items: [{ x: 1 }, { x: 2 }] }, "items.*.x") → [1, 2]
+ *
+ * Bonus: Support filter syntax like "users[role=admin].email"
+ */
+
+export function query(data: any, path: string): any {
+  // YOUR CODE HERE
+  return undefined;
+}
+
+/**
+ * Bonus: Set a value at a path (immutably).
+ * Returns a new object with the value set at the path.
+ */
+export function set(data: any, path: string, value: any): any {
+  // YOUR CODE HERE
+  return data;
+}
+]==],
+    tests = [==[
+import { describe, it, expect } from 'vitest';
+import { query, set } from './challenge';
+
+describe('Simple JSON Path Query', () => {
+  const sampleData = {
+    user: {
+      name: 'Alice',
+      age: 30,
+      contacts: {
+        email: 'alice@example.com',
+        phone: '555-1234',
+      },
+    },
+    items: [
+      { id: 1, name: 'Widget', price: 10.99 },
+      { id: 2, name: 'Gadget', price: 25.50 },
+      { id: 3, name: 'Doohickey', price: 5.00 },
+    ],
+    settings: {
+      theme: 'dark',
+      notifications: true,
+    },
+  };
+
+  it('simple property access', () => {
+    expect(query(sampleData, 'user')).toEqual(sampleData.user);
+    expect(query(sampleData, 'settings')).toEqual(sampleData.settings);
+  });
+
+  it('nested property access', () => {
+    expect(query(sampleData, 'user.name')).toBe('Alice');
+    expect(query(sampleData, 'user.contacts.email')).toBe('alice@example.com');
+    expect(query(sampleData, 'settings.theme')).toBe('dark');
+  });
+
+  it('array index access', () => {
+    expect(query(sampleData, 'items.0')).toEqual(sampleData.items[0]);
+    expect(query(sampleData, 'items.1.name')).toBe('Gadget');
+    expect(query(sampleData, 'items.2.price')).toBe(5.00);
+  });
+
+  it('returns undefined for missing paths', () => {
+    expect(query(sampleData, 'user.missing')).toBe(undefined);
+    expect(query(sampleData, 'nope.nada')).toBe(undefined);
+    expect(query(sampleData, 'items.99.name')).toBe(undefined);
+  });
+
+  it('wildcard in arrays', () => {
+    expect(query(sampleData, 'items.*.name')).toEqual(['Widget', 'Gadget', 'Doohickey']);
+    expect(query(sampleData, 'items.*.price')).toEqual([10.99, 25.50, 5.00]);
+  });
+
+  it('wildcard in objects', () => {
+    const data = {
+      users: {
+        alice: { age: 30 },
+        bob: { age: 25 },
+        charlie: { age: 35 },
+      },
+    };
+    const ages = query(data, 'users.*.age');
+    expect(ages.sort()).toEqual([25, 30, 35]);
+  });
+
+  it('root access with empty path', () => {
+    expect(query(sampleData, '')).toBe(sampleData);
+  });
+
+  it('primitive values return undefined for further access', () => {
+    expect(query(sampleData, 'user.age.something')).toBe(undefined);
+  });
+
+  it('chained wildcards', () => {
+    const data = {
+      teams: [
+        { members: [{ name: 'A' }, { name: 'B' }] },
+        { members: [{ name: 'C' }, { name: 'D' }] },
+      ],
+    };
+    expect(query(data, 'teams.*.members.*.name')).toEqual(['A', 'B', 'C', 'D']);
+  });
+
+  it('handles null and undefined gracefully', () => {
+    const data = { a: null, b: undefined, c: { d: null } };
+    expect(query(data, 'a.x')).toBe(undefined);
+    expect(query(data, 'b.y')).toBe(undefined);
+    expect(query(data, 'c.d.z')).toBe(undefined);
+  });
+
+  it('numeric string keys work', () => {
+    const data = { '123': 'value' };
+    expect(query(data, '123')).toBe('value');
+  });
+
+  it('complex real-world example', () => {
+    const data = {
+      api: {
+        endpoints: [
+          { path: '/users', methods: ['GET', 'POST'] },
+          { path: '/posts', methods: ['GET', 'DELETE'] },
+        ],
+      },
+    };
+    expect(query(data, 'api.endpoints.0.path')).toBe('/users');
+    expect(query(data, 'api.endpoints.*.path')).toEqual(['/users', '/posts']);
+  });
+
+  it('filter syntax (bonus)', () => {
+    expect(query(sampleData, 'items[name=Gadget].price')).toBe(25.50);
+    expect(query(sampleData, 'items[id=1].name')).toBe('Widget');
+  });
+
+  it('stress: deep nesting', () => {
+    let deep: any = { value: 42 };
+    for (let i = 0; i < 50; i++) {
+      deep = { next: deep };
+    }
+    let path = 'next.'.repeat(50) + 'value';
+    expect(query(deep, path)).toBe(42);
+  });
+
+  it('stress: wide array', () => {
+    const data = { items: Array.from({ length: 100 }, (_, i) => ({ id: i })) };
+    expect(query(data, 'items.50.id')).toBe(50);
+    const ids = query(data, 'items.*.id');
+    expect(ids.length).toBe(100);
+    expect(ids[0]).toBe(0);
+    expect(ids[99]).toBe(99);
+  });
+});
+
+describe('set (bonus)', () => {
+  it('sets simple property', () => {
+    const data = { a: 1 };
+    const result = set(data, 'b', 2);
+    expect(result).toEqual({ a: 1, b: 2 });
+    expect(data).toEqual({ a: 1 });
+  });
+
+  it('sets nested property', () => {
+    const data = { user: { name: 'Alice' } };
+    const result = set(data, 'user.age', 30);
+    expect(result.user.age).toBe(30);
+    expect(data.user.age).toBe(undefined);
+  });
+
+  it('creates missing intermediate objects', () => {
+    const data = {};
+    const result = set(data, 'a.b.c', 'deep');
+    expect(result.a.b.c).toBe('deep');
+  });
+
+  it('sets array index', () => {
+    const data = { items: [1, 2, 3] };
+    const result = set(data, 'items.1', 99);
+    expect(result.items).toEqual([1, 99, 3]);
+    expect(data.items).toEqual([1, 2, 3]);
+  });
+
+  it('immutability check', () => {
+    const original = { user: { name: 'Bob' } };
+    const updated = set(original, 'user.name', 'Alice');
+    expect(original.user.name).toBe('Bob');
+    expect(updated.user.name).toBe('Alice');
+    expect(original.user).not.toBe(updated.user);
+  });
+});
+]==],
+  },
 }
