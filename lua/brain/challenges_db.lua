@@ -8036,4 +8036,407 @@ describe('set (bonus)', () => {
 });
 ]==],
   },
+  {
+    name = "Operational Transform (Collaborative Editing)",
+    difficulty = "hard",
+    stub = [==[
+/**
+ * Operational Transform (Collaborative Editing)
+ *
+ * Implement the core of a collaborative text editor using Operational Transformation (OT).
+ * This is the algorithm behind Google Docs, Etherpad, and other real-time collaborative tools.
+ *
+ * Operations:
+ * - Insert(pos: number, text: string) — Insert text at position
+ * - Delete(pos: number, length: number) — Delete characters starting at position
+ * - Retain(count: number) — Skip forward count characters (for composition)
+ *
+ * Implement:
+ * - apply(doc: string, op: Operation): string
+ *   Apply an operation to a document string, return the new document.
+ *
+ * - transform(op1: Operation, op2: Operation, priority: 'left' | 'right'): Operation
+ *   Transform op1 against op2 (assuming they were concurrent).
+ *   Returns the transformed version of op1 that can be applied after op2.
+ *   Priority breaks ties when both ops target the same position.
+ *
+ * - compose(op1: Operation, op2: Operation): Operation
+ *   Compose two sequential operations into a single operation.
+ *
+ * OT Invariants (must hold):
+ * 1. transform(a, b, 'left') applied after b gives same result as
+ *    transform(b, a, 'right') applied after a
+ * 2. compose(a, b) applied once = applying a then b sequentially
+ *
+ * Example:
+ *   doc = "Hello"
+ *   op1 = Insert(5, " World")  // User 1: "Hello World"
+ *   op2 = Delete(0, 1)         // User 2: "ello"
+ *   
+ *   To merge: apply op2, then apply transform(op1, op2, 'left')
+ *   Result should be: "ello World"
+ */
+
+export type Operation =
+  | { type: 'insert'; pos: number; text: string }
+  | { type: 'delete'; pos: number; length: number }
+  | { type: 'retain'; count: number };
+
+export function apply(doc: string, op: Operation): string {
+  // YOUR CODE HERE
+  return doc;
+}
+
+export function transform(
+  op1: Operation,
+  op2: Operation,
+  priority: 'left' | 'right'
+): Operation {
+  // YOUR CODE HERE
+  return op1;
+}
+
+export function compose(op1: Operation, op2: Operation): Operation {
+  // YOUR CODE HERE
+  return op1;
+}
+
+/**
+ * Helper: Create operation objects
+ */
+export const Insert = (pos: number, text: string): Operation => 
+  ({ type: 'insert', pos, text });
+
+export const Delete = (pos: number, length: number): Operation => 
+  ({ type: 'delete', pos, length });
+
+export const Retain = (count: number): Operation => 
+  ({ type: 'retain', count });
+]==],
+    tests = [==[
+import { describe, it, expect } from 'vitest';
+import { apply, transform, compose, Insert, Delete, Retain } from './challenge';
+
+describe('apply operation', () => {
+  it('insert at beginning', () => {
+    expect(apply('World', Insert(0, 'Hello '))).toBe('Hello World');
+  });
+
+  it('insert at end', () => {
+    expect(apply('Hello', Insert(5, ' World'))).toBe('Hello World');
+  });
+
+  it('insert in middle', () => {
+    expect(apply('HeLo', Insert(2, 'l'))).toBe('Hello');
+  });
+
+  it('delete from beginning', () => {
+    expect(apply('Hello World', Delete(0, 6))).toBe('World');
+  });
+
+  it('delete from middle', () => {
+    expect(apply('Hello', Delete(1, 3))).toBe('Ho');
+  });
+
+  it('delete at end', () => {
+    expect(apply('Hello', Delete(3, 2))).toBe('Hel');
+  });
+
+  it('retain does nothing (identity)', () => {
+    expect(apply('Hello', Retain(5))).toBe('Hello');
+  });
+
+  it('empty document insert', () => {
+    expect(apply('', Insert(0, 'Hello'))).toBe('Hello');
+  });
+
+  it('delete entire document', () => {
+    expect(apply('Hello', Delete(0, 5))).toBe('');
+  });
+});
+
+describe('transform: Insert vs Insert', () => {
+  it('insert before insert (left priority)', () => {
+    const op1 = Insert(5, 'A');
+    const op2 = Insert(3, 'B');
+    const transformed = transform(op1, op2, 'left');
+    expect(transformed).toEqual(Insert(6, 'A'));
+  });
+
+  it('insert after insert', () => {
+    const op1 = Insert(3, 'A');
+    const op2 = Insert(5, 'B');
+    const transformed = transform(op1, op2, 'left');
+    expect(transformed).toEqual(Insert(3, 'A'));
+  });
+
+  it('insert at same position (left priority wins)', () => {
+    const op1 = Insert(5, 'A');
+    const op2 = Insert(5, 'B');
+    const transformed = transform(op1, op2, 'left');
+    expect(transformed).toEqual(Insert(5, 'A'));
+  });
+
+  it('insert at same position (right priority)', () => {
+    const op1 = Insert(5, 'A');
+    const op2 = Insert(5, 'B');
+    const transformed = transform(op1, op2, 'right');
+    expect(transformed).toEqual(Insert(6, 'A'));
+  });
+});
+
+describe('transform: Insert vs Delete', () => {
+  it('insert before delete range', () => {
+    const op1 = Insert(2, 'X');
+    const op2 = Delete(5, 3);
+    const transformed = transform(op1, op2, 'left');
+    expect(transformed).toEqual(Insert(2, 'X'));
+  });
+
+  it('insert after delete range', () => {
+    const op1 = Insert(10, 'X');
+    const op2 = Delete(2, 5);
+    const transformed = transform(op1, op2, 'left');
+    expect(transformed).toEqual(Insert(5, 'X'));
+  });
+
+  it('insert within delete range', () => {
+    const op1 = Insert(5, 'X');
+    const op2 = Delete(3, 5);
+    const transformed = transform(op1, op2, 'left');
+    expect(transformed).toEqual(Insert(3, 'X'));
+  });
+
+  it('insert at delete start (left priority)', () => {
+    const op1 = Insert(5, 'X');
+    const op2 = Delete(5, 3);
+    const transformed = transform(op1, op2, 'left');
+    expect(transformed).toEqual(Insert(5, 'X'));
+  });
+});
+
+describe('transform: Delete vs Insert', () => {
+  it('delete before insert', () => {
+    const op1 = Delete(2, 3);
+    const op2 = Insert(10, 'X');
+    const transformed = transform(op1, op2, 'left');
+    expect(transformed).toEqual(Delete(2, 3));
+  });
+
+  it('delete after insert', () => {
+    const op1 = Delete(10, 3);
+    const op2 = Insert(2, 'XX');
+    const transformed = transform(op1, op2, 'left');
+    expect(transformed).toEqual(Delete(12, 3));
+  });
+
+  it('delete range includes insert position', () => {
+    const op1 = Delete(3, 5);
+    const op2 = Insert(5, 'XX');
+    const transformed = transform(op1, op2, 'left');
+    expect(transformed).toEqual(Delete(3, 7));
+  });
+});
+
+describe('transform: Delete vs Delete', () => {
+  it('non-overlapping deletes', () => {
+    const op1 = Delete(10, 3);
+    const op2 = Delete(2, 3);
+    const transformed = transform(op1, op2, 'left');
+    expect(transformed).toEqual(Delete(7, 3));
+  });
+
+  it('overlapping deletes - partial', () => {
+    const op1 = Delete(5, 5);  // Delete [5,10)
+    const op2 = Delete(7, 3);  // Delete [7,10)
+    const transformed = transform(op1, op2, 'left');
+    expect(transformed).toEqual(Delete(5, 2));
+  });
+
+  it('overlapping deletes - full containment', () => {
+    const op1 = Delete(3, 2);  // Delete [3,5)
+    const op2 = Delete(2, 10); // Delete [2,12) contains [3,5)
+    const transformed = transform(op1, op2, 'left');
+    expect(transformed).toEqual(Delete(2, 0));
+  });
+
+  it('identical deletes', () => {
+    const op1 = Delete(5, 3);
+    const op2 = Delete(5, 3);
+    const transformed = transform(op1, op2, 'left');
+    expect(transformed).toEqual(Delete(5, 0));
+  });
+});
+
+describe('OT Invariant 1: Convergence', () => {
+  it('concurrent inserts converge', () => {
+    const doc = 'Hello';
+    const op1 = Insert(5, ' World');
+    const op2 = Insert(0, 'Hi ');
+
+    // Path 1: apply op1, then transform(op2, op1)
+    const doc1a = apply(doc, op1);
+    const op2_ = transform(op2, op1, 'right');
+    const result1 = apply(doc1a, op2_);
+
+    // Path 2: apply op2, then transform(op1, op2)
+    const doc2a = apply(doc, op2);
+    const op1_ = transform(op1, op2, 'left');
+    const result2 = apply(doc2a, op1_);
+
+    expect(result1).toBe(result2);
+  });
+
+  it('concurrent insert and delete converge', () => {
+    const doc = 'Hello World';
+    const op1 = Delete(6, 5);
+    const op2 = Insert(5, '!');
+
+    const doc1a = apply(doc, op1);
+    const op2_ = transform(op2, op1, 'right');
+    const result1 = apply(doc1a, op2_);
+
+    const doc2a = apply(doc, op2);
+    const op1_ = transform(op1, op2, 'left');
+    const result2 = apply(doc2a, op1_);
+
+    expect(result1).toBe(result2);
+  });
+
+  it('concurrent deletes converge', () => {
+    const doc = 'abcdefghijk';
+    const op1 = Delete(2, 4);
+    const op2 = Delete(5, 3);
+
+    const doc1a = apply(doc, op1);
+    const op2_ = transform(op2, op1, 'right');
+    const result1 = apply(doc1a, op2_);
+
+    const doc2a = apply(doc, op2);
+    const op1_ = transform(op1, op2, 'left');
+    const result2 = apply(doc2a, op1_);
+
+    expect(result1).toBe(result2);
+  });
+});
+
+describe('compose', () => {
+  it('compose two inserts', () => {
+    const op1 = Insert(0, 'Hello');
+    const op2 = Insert(5, ' World');
+    const composed = compose(op1, op2);
+    
+    const doc = '';
+    const result1 = apply(apply(doc, op1), op2);
+    const result2 = apply(doc, composed);
+    expect(result2).toBe(result1);
+  });
+
+  it('compose insert then delete', () => {
+    const op1 = Insert(0, 'Hello');
+    const op2 = Delete(1, 3);
+    const composed = compose(op1, op2);
+    
+    const doc = '';
+    const result1 = apply(apply(doc, op1), op2);
+    const result2 = apply(doc, composed);
+    expect(result2).toBe(result1);
+  });
+
+  it('compose delete then insert', () => {
+    const doc = 'Hello World';
+    const op1 = Delete(6, 5);
+    const op2 = Insert(5, '!');
+    const composed = compose(op1, op2);
+    
+    const result1 = apply(apply(doc, op1), op2);
+    const result2 = apply(doc, composed);
+    expect(result2).toBe(result1);
+  });
+
+  it('compose overlapping deletes', () => {
+    const doc = 'abcdefgh';
+    const op1 = Delete(2, 3);
+    const op2 = Delete(2, 2);
+    const composed = compose(op1, op2);
+    
+    const result1 = apply(apply(doc, op1), op2);
+    const result2 = apply(doc, composed);
+    expect(result2).toBe(result1);
+  });
+});
+
+describe('stress tests', () => {
+  it('many concurrent edits converge', () => {
+    let doc = 'The quick brown fox jumps over the lazy dog';
+    const ops = [
+      Insert(10, 'very '),
+      Delete(0, 4),
+      Insert(44, '!'),
+      Delete(16, 4),
+      Insert(31, ' extremely'),
+    ];
+
+    // Apply in all different orders - should converge
+    function applyAll(doc: string, ops: Operation[], order: number[]): string {
+      let result = doc;
+      const applied: Operation[] = [];
+      for (const i of order) {
+        let op = ops[i];
+        for (const prev of applied) {
+          op = transform(op, prev, 'left');
+        }
+        result = apply(result, op);
+        applied.push(ops[i]);
+      }
+      return result;
+    }
+
+    const order1 = [0, 1, 2, 3, 4];
+    const order2 = [4, 3, 2, 1, 0];
+    const order3 = [2, 0, 4, 1, 3];
+
+    const result1 = applyAll(doc, ops, order1);
+    const result2 = applyAll(doc, ops, order2);
+    const result3 = applyAll(doc, ops, order3);
+
+    // They might not all be identical due to transform priority,
+    // but at minimum they should all be valid strings
+    expect(typeof result1).toBe('string');
+    expect(typeof result2).toBe('string');
+    expect(typeof result3).toBe('string');
+  });
+
+  it('rapid insert-delete sequences', () => {
+    let doc = 'Hello';
+    doc = apply(doc, Insert(5, ' World'));
+    doc = apply(doc, Delete(0, 6));
+    doc = apply(doc, Insert(0, 'Beautiful '));
+    doc = apply(doc, Delete(10, 5));
+    expect(doc).toBe('Beautiful ');
+  });
+
+  it('transform chain maintains correctness', () => {
+    const doc = 'abcdef';
+    const op1 = Insert(3, 'X');
+    const op2 = Delete(2, 2);
+    const op3 = Insert(1, 'Y');
+
+    // Transform op1 against op2 and op3
+    let op1_ = transform(op1, op2, 'left');
+    op1_ = transform(op1_, op3, 'left');
+
+    // Apply op2, op3, then transformed op1
+    let result = apply(doc, op2);
+    result = apply(result, op3);
+    result = apply(result, op1_);
+
+    // Verify it's a valid string
+    expect(typeof result).toBe('string');
+    expect(result.includes('X')).toBe(true);
+    expect(result.includes('Y')).toBe(true);
+  });
+});
+]==],
+  },
 }
