@@ -8440,3 +8440,282 @@ describe('stress tests', () => {
 ]==],
   },
 }
+  {
+    name = "Recursive Descent Parser",
+    difficulty = "medium",
+    stub = [==[
+/**
+ * Recursive Descent Parser
+ *
+ * Implement a recursive descent parser for a simple arithmetic expression language.
+ *
+ * Grammar (EBNF):
+ *   expr   ::= term (('+' | '-') term)*
+ *   term   ::= factor (('*' | '/') factor)*
+ *   factor ::= number | '(' expr ')'
+ *   number ::= [0-9]+
+ *
+ * Parser class:
+ * - constructor(input: string) — Initialize with an input string.
+ * - parse(): ASTNode — Parse and return the abstract syntax tree.
+ *   Throw SyntaxError for invalid input.
+ *
+ * AST node types:
+ *   BinaryOp: { type: 'binary', op: '+' | '-' | '*' | '/', left: ASTNode, right: ASTNode }
+ *   Number:   { type: 'number', value: number }
+ *
+ * Examples:
+ *   "3 + 5" → { type: 'binary', op: '+', left: { type: 'number', value: 3 }, right: { type: 'number', value: 5 } }
+ *   "2 * (3 + 4)" → nested binary op nodes
+ *
+ * Bonus: Implement eval(ast) to evaluate the AST to a numeric result.
+ */
+
+type BinaryOp = {
+  type: 'binary';
+  op: '+' | '-' | '*' | '/';
+  left: ASTNode;
+  right: ASTNode;
+};
+
+type NumberNode = {
+  type: 'number';
+  value: number;
+};
+
+export type ASTNode = BinaryOp | NumberNode;
+
+export class Parser {
+  constructor(input: string) {
+    // YOUR CODE HERE
+  }
+
+  parse(): ASTNode {
+    // YOUR CODE HERE
+    throw new SyntaxError('Not implemented');
+  }
+}
+
+/**
+ * Bonus: Evaluate an AST to a number.
+ */
+export function evaluate(ast: ASTNode): number {
+  // YOUR CODE HERE
+  return 0;
+}
+]==],
+    tests = [==[
+import { describe, it, expect } from 'vitest';
+import { Parser, evaluate } from './challenge';
+
+describe('Parser', () => {
+  it('parses a single number', () => {
+    const ast = new Parser('42').parse();
+    expect(ast).toEqual({ type: 'number', value: 42 });
+  });
+
+  it('parses simple addition', () => {
+    const ast = new Parser('3 + 5').parse();
+    expect(ast).toMatchObject({
+      type: 'binary',
+      op: '+',
+      left: { type: 'number', value: 3 },
+      right: { type: 'number', value: 5 },
+    });
+  });
+
+  it('parses simple subtraction', () => {
+    const ast = new Parser('10 - 4').parse();
+    expect(ast.type).toBe('binary');
+    if (ast.type === 'binary') {
+      expect(ast.op).toBe('-');
+      expect((ast.left as any).value).toBe(10);
+      expect((ast.right as any).value).toBe(4);
+    }
+  });
+
+  it('parses multiplication', () => {
+    const ast = new Parser('6 * 7').parse();
+    expect(evaluate(ast)).toBe(42);
+  });
+
+  it('parses division', () => {
+    const ast = new Parser('20 / 4').parse();
+    expect(evaluate(ast)).toBe(5);
+  });
+
+  it('respects precedence: * before +', () => {
+    const ast = new Parser('2 + 3 * 4').parse();
+    expect(evaluate(ast)).toBe(14);
+  });
+
+  it('respects precedence: / before -', () => {
+    const ast = new Parser('10 - 8 / 2').parse();
+    expect(evaluate(ast)).toBe(6);
+  });
+
+  it('handles parentheses', () => {
+    const ast = new Parser('(2 + 3) * 4').parse();
+    expect(evaluate(ast)).toBe(20);
+  });
+
+  it('nested parentheses', () => {
+    const ast = new Parser('((1 + 2) * (3 + 4))').parse();
+    expect(evaluate(ast)).toBe(21);
+  });
+
+  it('left-associativity for addition', () => {
+    const ast = new Parser('1 + 2 + 3').parse();
+    expect(evaluate(ast)).toBe(6);
+  });
+
+  it('left-associativity for subtraction', () => {
+    const ast = new Parser('10 - 3 - 2').parse();
+    expect(evaluate(ast)).toBe(5);
+  });
+
+  it('mixed operations', () => {
+    const ast = new Parser('2 + 3 * 4 - 5 / 1').parse();
+    expect(evaluate(ast)).toBe(9);
+  });
+
+  it('whitespace is ignored', () => {
+    const ast = new Parser('  2  +  3  *  4  ').parse();
+    expect(evaluate(ast)).toBe(14);
+  });
+
+  it('throws on empty input', () => {
+    expect(() => new Parser('').parse()).toThrow(SyntaxError);
+  });
+
+  it('throws on invalid character', () => {
+    expect(() => new Parser('2 + @').parse()).toThrow(SyntaxError);
+  });
+
+  it('throws on mismatched parentheses - missing close', () => {
+    expect(() => new Parser('(2 + 3').parse()).toThrow(SyntaxError);
+  });
+
+  it('throws on mismatched parentheses - extra close', () => {
+    expect(() => new Parser('2 + 3)').parse()).toThrow(SyntaxError);
+  });
+
+  it('throws on trailing operator', () => {
+    expect(() => new Parser('2 +').parse()).toThrow(SyntaxError);
+  });
+
+  it('throws on leading operator', () => {
+    expect(() => new Parser('+ 2').parse()).toThrow(SyntaxError);
+  });
+
+  it('multi-digit numbers', () => {
+    const ast = new Parser('123 + 456').parse();
+    expect(evaluate(ast)).toBe(579);
+  });
+
+  it('complex expression', () => {
+    const ast = new Parser('(10 + 20) * (5 - 3) / 2').parse();
+    expect(evaluate(ast)).toBe(30);
+  });
+
+  it('stress: deeply nested parentheses', () => {
+    const ast = new Parser('((((1 + 1) + 1) + 1) + 1)').parse();
+    expect(evaluate(ast)).toBe(5);
+  });
+
+  it('stress: long chain of additions', () => {
+    const expr = Array.from({ length: 50 }, (_, i) => i + 1).join(' + ');
+    const ast = new Parser(expr).parse();
+    expect(evaluate(ast)).toBe(1275);
+  });
+
+  it('division by zero throws or returns Infinity', () => {
+    const ast = new Parser('1 / 0').parse();
+    const result = evaluate(ast);
+    expect(result === Infinity || isNaN(result)).toBe(true);
+  });
+
+  it('only spaces between tokens', () => {
+    expect(() => new Parser('2 3').parse()).toThrow(SyntaxError);
+  });
+
+  it('validates full consumption of input', () => {
+    expect(() => new Parser('2 + 3 garbage').parse()).toThrow(SyntaxError);
+  });
+});
+
+describe('evaluate', () => {
+  it('evaluates number node', () => {
+    expect(evaluate({ type: 'number', value: 7 })).toBe(7);
+  });
+
+  it('evaluates addition', () => {
+    const ast = {
+      type: 'binary' as const,
+      op: '+' as const,
+      left: { type: 'number' as const, value: 2 },
+      right: { type: 'number' as const, value: 3 },
+    };
+    expect(evaluate(ast)).toBe(5);
+  });
+
+  it('evaluates subtraction', () => {
+    const ast = {
+      type: 'binary' as const,
+      op: '-' as const,
+      left: { type: 'number' as const, value: 10 },
+      right: { type: 'number' as const, value: 4 },
+    };
+    expect(evaluate(ast)).toBe(6);
+  });
+
+  it('evaluates multiplication', () => {
+    const ast = {
+      type: 'binary' as const,
+      op: '*' as const,
+      left: { type: 'number' as const, value: 5 },
+      right: { type: 'number' as const, value: 6 },
+    };
+    expect(evaluate(ast)).toBe(30);
+  });
+
+  it('evaluates division', () => {
+    const ast = {
+      type: 'binary' as const,
+      op: '/' as const,
+      left: { type: 'number' as const, value: 15 },
+      right: { type: 'number' as const, value: 3 },
+    };
+    expect(evaluate(ast)).toBe(5);
+  });
+
+  it('evaluates nested expression', () => {
+    const ast = {
+      type: 'binary' as const,
+      op: '+' as const,
+      left: {
+        type: 'binary' as const,
+        op: '*' as const,
+        left: { type: 'number' as const, value: 2 },
+        right: { type: 'number' as const, value: 3 },
+      },
+      right: { type: 'number' as const, value: 4 },
+    };
+    expect(evaluate(ast)).toBe(10);
+  });
+
+  it('negative results', () => {
+    const ast = {
+      type: 'binary' as const,
+      op: '-' as const,
+      left: { type: 'number' as const, value: 3 },
+      right: { type: 'number' as const, value: 7 },
+    };
+    expect(evaluate(ast)).toBe(-4);
+  });
+});
+]==],
+  },
+}
+
+return M
