@@ -8716,6 +8716,330 @@ describe('evaluate', () => {
 });
 ]==],
   },
+  {
+    name = "Skip List",
+    difficulty = "medium",
+    stub = [==[
+/**
+ * Skip List
+ *
+ * Implement a probabilistic data structure that allows fast search, insertion,
+ * and deletion with O(log n) average time complexity.
+ *
+ * A skip list is a layered linked list where higher levels skip over multiple
+ * nodes, enabling binary-search-like performance without tree rebalancing.
+ *
+ * SkipList class:
+ * - insert(value: number): void — Insert a value into the skip list
+ * - search(value: number): boolean — Check if a value exists
+ * - delete(value: number): boolean — Remove a value, return true if found
+ * - get size — Number of elements in the list
+ * - get height — Current maximum level count
+ * - toArray(): number[] — Return sorted array of all values
+ *
+ * Properties:
+ * - Nodes have multiple forward pointers (levels)
+ * - Probability p = 0.5 for level promotion
+ * - Maximum level = log2(n) or configurable max
+ * - Maintains sorted order automatically
+ */
+
+export class SkipList {
+  constructor(maxLevel: number = 16, p: number = 0.5) {
+    // YOUR CODE HERE
+  }
+
+  insert(value: number): void {
+    // YOUR CODE HERE
+  }
+
+  search(value: number): boolean {
+    // YOUR CODE HERE
+    return false;
+  }
+
+  delete(value: number): boolean {
+    // YOUR CODE HERE
+    return false;
+  }
+
+  get size(): number {
+    // YOUR CODE HERE
+    return 0;
+  }
+
+  get height(): number {
+    // YOUR CODE HERE
+    return 0;
+  }
+
+  toArray(): number[] {
+    // YOUR CODE HERE
+    return [];
+  }
+}
+]==],
+    tests = [==[
+import { describe, it, expect } from 'vitest';
+import { SkipList } from './challenge';
+
+describe('Skip List', () => {
+  it('insert and search', () => {
+    const list = new SkipList();
+    list.insert(5);
+    list.insert(3);
+    list.insert(7);
+    expect(list.search(5)).toBe(true);
+    expect(list.search(3)).toBe(true);
+    expect(list.search(7)).toBe(true);
+  });
+
+  it('search returns false for missing values', () => {
+    const list = new SkipList();
+    list.insert(10);
+    expect(list.search(5)).toBe(false);
+    expect(list.search(20)).toBe(false);
+  });
+
+  it('maintains sorted order in toArray', () => {
+    const list = new SkipList();
+    [7, 3, 9, 1, 5].forEach(v => list.insert(v));
+    expect(list.toArray()).toEqual([1, 3, 5, 7, 9]);
+  });
+
+  it('delete removes value', () => {
+    const list = new SkipList();
+    list.insert(5);
+    list.insert(3);
+    list.insert(7);
+    expect(list.delete(5)).toBe(true);
+    expect(list.search(5)).toBe(false);
+    expect(list.toArray()).toEqual([3, 7]);
+  });
+
+  it('delete returns false for non-existent value', () => {
+    const list = new SkipList();
+    list.insert(5);
+    expect(list.delete(10)).toBe(false);
+  });
+
+  it('size reflects element count', () => {
+    const list = new SkipList();
+    expect(list.size).toBe(0);
+    list.insert(1);
+    list.insert(2);
+    list.insert(3);
+    expect(list.size).toBe(3);
+    list.delete(2);
+    expect(list.size).toBe(2);
+  });
+
+  it('handles duplicate inserts', () => {
+    const list = new SkipList();
+    list.insert(5);
+    list.insert(5);
+    list.insert(5);
+    expect(list.toArray()).toEqual([5, 5, 5]);
+    expect(list.size).toBe(3);
+  });
+
+  it('empty list', () => {
+    const list = new SkipList();
+    expect(list.size).toBe(0);
+    expect(list.toArray()).toEqual([]);
+    expect(list.search(1)).toBe(false);
+    expect(list.delete(1)).toBe(false);
+  });
+
+  it('single element', () => {
+    const list = new SkipList();
+    list.insert(42);
+    expect(list.search(42)).toBe(true);
+    expect(list.size).toBe(1);
+    expect(list.toArray()).toEqual([42]);
+  });
+
+  it('insert in ascending order', () => {
+    const list = new SkipList();
+    for (let i = 1; i <= 10; i++) {
+      list.insert(i);
+    }
+    expect(list.toArray()).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+  });
+
+  it('insert in descending order', () => {
+    const list = new SkipList();
+    for (let i = 10; i >= 1; i--) {
+      list.insert(i);
+    }
+    expect(list.toArray()).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+  });
+
+  it('negative numbers', () => {
+    const list = new SkipList();
+    [-5, 3, -10, 0, 7].forEach(v => list.insert(v));
+    expect(list.toArray()).toEqual([-10, -5, 0, 3, 7]);
+  });
+
+  it('height increases with more elements', () => {
+    const list = new SkipList();
+    const initialHeight = list.height;
+    for (let i = 0; i < 100; i++) {
+      list.insert(i);
+    }
+    expect(list.height).toBeGreaterThan(initialHeight);
+  });
+
+  it('height respects maxLevel', () => {
+    const list = new SkipList(5);
+    for (let i = 0; i < 1000; i++) {
+      list.insert(i);
+    }
+    expect(list.height).toBeLessThanOrEqual(5);
+  });
+
+  it('delete from single-element list', () => {
+    const list = new SkipList();
+    list.insert(10);
+    expect(list.delete(10)).toBe(true);
+    expect(list.size).toBe(0);
+    expect(list.toArray()).toEqual([]);
+  });
+
+  it('delete first element', () => {
+    const list = new SkipList();
+    [1, 2, 3, 4, 5].forEach(v => list.insert(v));
+    list.delete(1);
+    expect(list.toArray()).toEqual([2, 3, 4, 5]);
+  });
+
+  it('delete last element', () => {
+    const list = new SkipList();
+    [1, 2, 3, 4, 5].forEach(v => list.insert(v));
+    list.delete(5);
+    expect(list.toArray()).toEqual([1, 2, 3, 4]);
+  });
+
+  it('delete middle element', () => {
+    const list = new SkipList();
+    [1, 2, 3, 4, 5].forEach(v => list.insert(v));
+    list.delete(3);
+    expect(list.toArray()).toEqual([1, 2, 4, 5]);
+  });
+
+  it('multiple deletes', () => {
+    const list = new SkipList();
+    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].forEach(v => list.insert(v));
+    list.delete(2);
+    list.delete(5);
+    list.delete(8);
+    expect(list.toArray()).toEqual([1, 3, 4, 6, 7, 9, 10]);
+  });
+
+  it('search after delete', () => {
+    const list = new SkipList();
+    list.insert(5);
+    list.insert(10);
+    list.insert(15);
+    list.delete(10);
+    expect(list.search(10)).toBe(false);
+    expect(list.search(5)).toBe(true);
+    expect(list.search(15)).toBe(true);
+  });
+
+  it('alternating insert and delete', () => {
+    const list = new SkipList();
+    list.insert(1);
+    list.insert(2);
+    list.delete(1);
+    list.insert(3);
+    list.delete(2);
+    list.insert(4);
+    expect(list.toArray()).toEqual([3, 4]);
+  });
+
+  it('stress: many insertions', () => {
+    const list = new SkipList();
+    const values = Array.from({ length: 1000 }, () => Math.floor(Math.random() * 10000));
+    values.forEach(v => list.insert(v));
+    expect(list.size).toBe(1000);
+    const sorted = list.toArray();
+    for (let i = 1; i < sorted.length; i++) {
+      expect(sorted[i]).toBeGreaterThanOrEqual(sorted[i - 1]);
+    }
+  });
+
+  it('stress: many searches', () => {
+    const list = new SkipList();
+    for (let i = 0; i < 500; i++) {
+      list.insert(i);
+    }
+    for (let i = 0; i < 500; i++) {
+      expect(list.search(i)).toBe(true);
+    }
+    for (let i = 500; i < 1000; i++) {
+      expect(list.search(i)).toBe(false);
+    }
+  });
+
+  it('stress: many deletions', () => {
+    const list = new SkipList();
+    for (let i = 0; i < 500; i++) {
+      list.insert(i);
+    }
+    for (let i = 0; i < 250; i++) {
+      expect(list.delete(i * 2)).toBe(true);
+    }
+    expect(list.size).toBe(250);
+    const remaining = list.toArray();
+    expect(remaining.every(v => v % 2 === 1)).toBe(true);
+  });
+
+  it('decimal numbers', () => {
+    const list = new SkipList();
+    [3.14, 2.71, 1.41, 1.73].forEach(v => list.insert(v));
+    expect(list.toArray()).toEqual([1.41, 1.73, 2.71, 3.14]);
+  });
+
+  it('very large numbers', () => {
+    const list = new SkipList();
+    [1e10, 1e5, 1e15, 1e3].forEach(v => list.insert(v));
+    expect(list.toArray()).toEqual([1e3, 1e5, 1e10, 1e15]);
+  });
+
+  it('duplicate deletes', () => {
+    const list = new SkipList();
+    list.insert(5);
+    list.insert(5);
+    list.insert(5);
+    expect(list.delete(5)).toBe(true);
+    expect(list.search(5)).toBe(true);
+    expect(list.size).toBe(2);
+  });
+
+  it('mixed operations maintain consistency', () => {
+    const list = new SkipList();
+    list.insert(10);
+    list.insert(5);
+    list.insert(15);
+    expect(list.search(5)).toBe(true);
+    list.delete(5);
+    expect(list.search(5)).toBe(false);
+    list.insert(5);
+    expect(list.search(5)).toBe(true);
+    expect(list.toArray()).toEqual([5, 10, 15]);
+  });
+
+  it('empty after deleting all', () => {
+    const list = new SkipList();
+    [1, 2, 3].forEach(v => list.insert(v));
+    [1, 2, 3].forEach(v => list.delete(v));
+    expect(list.size).toBe(0);
+    expect(list.toArray()).toEqual([]);
+  });
+});
+]==],
+  },
 }
 
 return M
