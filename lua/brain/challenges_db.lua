@@ -9043,3 +9043,342 @@ describe('Skip List', () => {
 }
 
 return M
+  {
+    name = "Circuit Breaker",
+    difficulty = "medium",
+    stub = [==[
+/**
+ * Circuit Breaker
+ *
+ * Implement the Circuit Breaker pattern for fault tolerance in distributed systems.
+ * The circuit breaker wraps async operations and tracks failures to prevent cascading failures.
+ *
+ * States:
+ * - CLOSED: Normal operation. Calls pass through. Track failures.
+ * - OPEN: Too many failures detected. Reject calls immediately for a timeout period.
+ * - HALF_OPEN: After timeout, allow one test call. Success → CLOSED, failure → OPEN.
+ *
+ * CircuitBreaker class:
+ * - constructor(options: { failureThreshold: number, resetTimeout: number, halfOpenMaxCalls?: number })
+ *   failureThreshold: consecutive failures before opening
+ *   resetTimeout: milliseconds to wait before trying HALF_OPEN
+ *   halfOpenMaxCalls: max concurrent calls in HALF_OPEN (default: 1)
+ *
+ * - async execute<T>(fn: () => Promise<T>, now?: number): Promise<T>
+ *   Execute fn through the circuit breaker. Throw CircuitOpenError if circuit is open.
+ *   `now` parameter allows time injection for testing.
+ *
+ * - get state(): 'CLOSED' | 'OPEN' | 'HALF_OPEN'
+ *   Current circuit state.
+ *
+ * - reset(): void
+ *   Manually reset to CLOSED state and clear failure count.
+ *
+ * - get stats(): { failures: number, successes: number, rejections: number }
+ *   Get lifetime stats.
+ *
+ * CircuitOpenError: Custom error thrown when circuit is open.
+ *
+ * Behavior:
+ * - CLOSED: increment failure count on rejection, reset on success
+ * - When failures >= threshold, transition to OPEN
+ * - OPEN: reject immediately, check if resetTimeout elapsed → HALF_OPEN
+ * - HALF_OPEN: allow limited test calls, success → CLOSED, failure → OPEN
+ *
+ * Bonus: Implement onStateChange(callback) for monitoring state transitions.
+ */
+
+export class CircuitOpenError extends Error {
+  constructor() {
+    super('Circuit breaker is OPEN');
+    this.name = 'CircuitOpenError';
+  }
+}
+
+interface CircuitBreakerOptions {
+  failureThreshold: number;
+  resetTimeout: number;
+  halfOpenMaxCalls?: number;
+}
+
+interface Stats {
+  failures: number;
+  successes: number;
+  rejections: number;
+}
+
+type CircuitState = 'CLOSED' | 'OPEN' | 'HALF_OPEN';
+
+export class CircuitBreaker {
+  constructor(options: CircuitBreakerOptions) {
+    // YOUR CODE HERE
+  }
+
+  async execute<T>(fn: () => Promise<T>, now?: number): Promise<T> {
+    // YOUR CODE HERE
+    throw new Error('Not implemented');
+  }
+
+  get state(): CircuitState {
+    // YOUR CODE HERE
+    return 'CLOSED';
+  }
+
+  reset(): void {
+    // YOUR CODE HERE
+  }
+
+  get stats(): Stats {
+    // YOUR CODE HERE
+    return { failures: 0, successes: 0, rejections: 0 };
+  }
+
+  /**
+   * Bonus: Register a callback for state transitions.
+   * Returns an unsubscribe function.
+   */
+  onStateChange(callback: (from: CircuitState, to: CircuitState) => void): () => void {
+    // YOUR CODE HERE
+    return () => {};
+  }
+}
+]==],
+    tests = [==[
+import { describe, it, expect, vi } from 'vitest';
+import { CircuitBreaker, CircuitOpenError } from './challenge';
+
+describe('Circuit Breaker', () => {
+  it('starts in CLOSED state', () => {
+    const cb = new CircuitBreaker({ failureThreshold: 3, resetTimeout: 1000 });
+    expect(cb.state).toBe('CLOSED');
+  });
+
+  it('successful calls stay CLOSED', async () => {
+    const cb = new CircuitBreaker({ failureThreshold: 3, resetTimeout: 1000 });
+    await cb.execute(() => Promise.resolve(42), 0);
+    await cb.execute(() => Promise.resolve(43), 0);
+    expect(cb.state).toBe('CLOSED');
+    expect(cb.stats.successes).toBe(2);
+    expect(cb.stats.failures).toBe(0);
+  });
+
+  it('opens after threshold failures', async () => {
+    const cb = new CircuitBreaker({ failureThreshold: 3, resetTimeout: 1000 });
+    const failFn = () => Promise.reject(new Error('fail'));
+    
+    await expect(cb.execute(failFn, 0)).rejects.toThrow('fail');
+    await expect(cb.execute(failFn, 0)).rejects.toThrow('fail');
+    await expect(cb.execute(failFn, 0)).rejects.toThrow('fail');
+    
+    expect(cb.state).toBe('OPEN');
+    expect(cb.stats.failures).toBe(3);
+  });
+
+  it('rejects immediately when OPEN', async () => {
+    const cb = new CircuitBreaker({ failureThreshold: 2, resetTimeout: 1000 });
+    const failFn = () => Promise.reject(new Error('fail'));
+    
+    await expect(cb.execute(failFn, 0)).rejects.toThrow();
+    await expect(cb.execute(failFn, 0)).rejects.toThrow();
+    
+    await expect(cb.execute(() => Promise.resolve(1), 0)).rejects.toThrow(CircuitOpenError);
+    expect(cb.stats.rejections).toBe(1);
+  });
+
+  it('transitions to HALF_OPEN after timeout', async () => {
+    const cb = new CircuitBreaker({ failureThreshold: 2, resetTimeout: 1000 });
+    const failFn = () => Promise.reject(new Error('fail'));
+    
+    await expect(cb.execute(failFn, 0)).rejects.toThrow();
+    await expect(cb.execute(failFn, 0)).rejects.toThrow();
+    expect(cb.state).toBe('OPEN');
+    
+    await expect(cb.execute(() => Promise.resolve(1), 500)).rejects.toThrow(CircuitOpenError);
+    
+    const result = await cb.execute(() => Promise.resolve(42), 1001);
+    expect(result).toBe(42);
+    expect(cb.state).toBe('CLOSED');
+  });
+
+  it('HALF_OPEN success closes circuit', async () => {
+    const cb = new CircuitBreaker({ failureThreshold: 2, resetTimeout: 1000 });
+    
+    await expect(cb.execute(() => Promise.reject('err'), 0)).rejects.toThrow();
+    await expect(cb.execute(() => Promise.reject('err'), 0)).rejects.toThrow();
+    
+    await cb.execute(() => Promise.resolve('ok'), 1001);
+    expect(cb.state).toBe('CLOSED');
+    expect(cb.stats.successes).toBe(1);
+  });
+
+  it('HALF_OPEN failure reopens circuit', async () => {
+    const cb = new CircuitBreaker({ failureThreshold: 2, resetTimeout: 1000 });
+    
+    await expect(cb.execute(() => Promise.reject('a'), 0)).rejects.toThrow();
+    await expect(cb.execute(() => Promise.reject('b'), 0)).rejects.toThrow();
+    expect(cb.state).toBe('OPEN');
+    
+    await expect(cb.execute(() => Promise.reject('c'), 1001)).rejects.toThrow('c');
+    expect(cb.state).toBe('OPEN');
+  });
+
+  it('reset clears state and returns to CLOSED', async () => {
+    const cb = new CircuitBreaker({ failureThreshold: 2, resetTimeout: 1000 });
+    
+    await expect(cb.execute(() => Promise.reject('x'), 0)).rejects.toThrow();
+    await expect(cb.execute(() => Promise.reject('y'), 0)).rejects.toThrow();
+    expect(cb.state).toBe('OPEN');
+    
+    cb.reset();
+    expect(cb.state).toBe('CLOSED');
+    expect(cb.stats.failures).toBe(0);
+    
+    await cb.execute(() => Promise.resolve(1), 0);
+    expect(cb.state).toBe('CLOSED');
+  });
+
+  it('success in CLOSED resets failure count', async () => {
+    const cb = new CircuitBreaker({ failureThreshold: 3, resetTimeout: 1000 });
+    
+    await expect(cb.execute(() => Promise.reject('a'), 0)).rejects.toThrow();
+    await expect(cb.execute(() => Promise.reject('b'), 0)).rejects.toThrow();
+    
+    await cb.execute(() => Promise.resolve('ok'), 0);
+    
+    await expect(cb.execute(() => Promise.reject('c'), 0)).rejects.toThrow();
+    await expect(cb.execute(() => Promise.reject('d'), 0)).rejects.toThrow();
+    expect(cb.state).toBe('CLOSED');
+  });
+
+  it('handles threshold of 1', async () => {
+    const cb = new CircuitBreaker({ failureThreshold: 1, resetTimeout: 500 });
+    
+    await expect(cb.execute(() => Promise.reject('x'), 0)).rejects.toThrow();
+    expect(cb.state).toBe('OPEN');
+    
+    await cb.execute(() => Promise.resolve('recovered'), 501);
+    expect(cb.state).toBe('CLOSED');
+  });
+
+  it('halfOpenMaxCalls limits concurrent tests', async () => {
+    const cb = new CircuitBreaker({ 
+      failureThreshold: 2, 
+      resetTimeout: 1000, 
+      halfOpenMaxCalls: 2 
+    });
+    
+    await expect(cb.execute(() => Promise.reject('a'), 0)).rejects.toThrow();
+    await expect(cb.execute(() => Promise.reject('b'), 0)).rejects.toThrow();
+    
+    const p1 = cb.execute(() => new Promise(r => setTimeout(r, 100)), 1001);
+    const p2 = cb.execute(() => new Promise(r => setTimeout(r, 100)), 1001);
+    const p3 = cb.execute(() => Promise.resolve(1), 1001);
+    
+    await expect(p3).rejects.toThrow(CircuitOpenError);
+    await p1;
+    await p2;
+  });
+
+  it('stats track all operations', async () => {
+    const cb = new CircuitBreaker({ failureThreshold: 3, resetTimeout: 1000 });
+    
+    await cb.execute(() => Promise.resolve(1), 0);
+    await cb.execute(() => Promise.resolve(2), 0);
+    
+    await expect(cb.execute(() => Promise.reject('x'), 0)).rejects.toThrow();
+    await expect(cb.execute(() => Promise.reject('y'), 0)).rejects.toThrow();
+    await expect(cb.execute(() => Promise.reject('z'), 0)).rejects.toThrow();
+    
+    await expect(cb.execute(() => Promise.resolve(3), 0)).rejects.toThrow(CircuitOpenError);
+    await expect(cb.execute(() => Promise.resolve(4), 0)).rejects.toThrow(CircuitOpenError);
+    
+    expect(cb.stats.successes).toBe(2);
+    expect(cb.stats.failures).toBe(3);
+    expect(cb.stats.rejections).toBe(2);
+  });
+
+  it('onStateChange fires on transitions', async () => {
+    const cb = new CircuitBreaker({ failureThreshold: 2, resetTimeout: 1000 });
+    const transitions: Array<{ from: string; to: string }> = [];
+    cb.onStateChange((from, to) => transitions.push({ from, to }));
+    
+    await expect(cb.execute(() => Promise.reject('a'), 0)).rejects.toThrow();
+    await expect(cb.execute(() => Promise.reject('b'), 0)).rejects.toThrow();
+    
+    await cb.execute(() => Promise.resolve('ok'), 1001);
+    
+    expect(transitions).toEqual([
+      { from: 'CLOSED', to: 'OPEN' },
+      { from: 'OPEN', to: 'HALF_OPEN' },
+      { from: 'HALF_OPEN', to: 'CLOSED' },
+    ]);
+  });
+
+  it('onStateChange unsubscribe works', async () => {
+    const cb = new CircuitBreaker({ failureThreshold: 2, resetTimeout: 1000 });
+    const callbackFn = vi.fn();
+    const unsub = cb.onStateChange(callbackFn);
+    
+    await expect(cb.execute(() => Promise.reject('x'), 0)).rejects.toThrow();
+    unsub();
+    await expect(cb.execute(() => Promise.reject('y'), 0)).rejects.toThrow();
+    
+    expect(callbackFn).toHaveBeenCalledTimes(0);
+  });
+
+  it('stress: many operations', async () => {
+    const cb = new CircuitBreaker({ failureThreshold: 10, resetTimeout: 100 });
+    
+    for (let i = 0; i < 50; i++) {
+      try {
+        if (i % 5 === 0) {
+          await cb.execute(() => Promise.reject('err'), i * 10);
+        } else {
+          await cb.execute(() => Promise.resolve(i), i * 10);
+        }
+      } catch (e) {}
+    }
+    
+    const stats = cb.stats;
+    expect(stats.successes + stats.failures + stats.rejections).toBeGreaterThan(0);
+  });
+
+  it('async operations propagate correctly', async () => {
+    const cb = new CircuitBreaker({ failureThreshold: 3, resetTimeout: 1000 });
+    
+    const slowSuccess = () => new Promise<string>(r => setTimeout(() => r('done'), 50));
+    const result = await cb.execute(slowSuccess, 0);
+    expect(result).toBe('done');
+    expect(cb.stats.successes).toBe(1);
+  });
+
+  it('rejection reason preserved', async () => {
+    const cb = new CircuitBreaker({ failureThreshold: 5, resetTimeout: 1000 });
+    const customError = new Error('custom failure');
+    
+    await expect(cb.execute(() => Promise.reject(customError), 0))
+      .rejects.toThrow('custom failure');
+  });
+
+  it('very short timeout', async () => {
+    const cb = new CircuitBreaker({ failureThreshold: 2, resetTimeout: 1 });
+    
+    await expect(cb.execute(() => Promise.reject('a'), 0)).rejects.toThrow();
+    await expect(cb.execute(() => Promise.reject('b'), 0)).rejects.toThrow();
+    
+    await cb.execute(() => Promise.resolve('ok'), 2);
+    expect(cb.state).toBe('CLOSED');
+  });
+
+  it('handles synchronous rejections', async () => {
+    const cb = new CircuitBreaker({ failureThreshold: 2, resetTimeout: 1000 });
+    
+    await expect(cb.execute(() => { throw new Error('sync'); }, 0)).rejects.toThrow('sync');
+    expect(cb.stats.failures).toBe(1);
+  });
+});
+]==],
+  },
+}
+
+return M
