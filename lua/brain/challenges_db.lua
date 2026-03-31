@@ -9379,6 +9379,383 @@ describe('Circuit Breaker', () => {
 });
 ]==],
   },
+
+  {
+    name = "Task Scheduler with Priority Queue",
+    difficulty = "medium",
+    stub = [==[
+/**
+ * Task Scheduler with Priority Queue
+ *
+ * Implement a task scheduler that executes tasks in priority order with support
+ * for delayed execution and recurring tasks.
+ *
+ * Task interface:
+ *   { id: string, priority: number, execute: () => void | Promise<void>, delay?: number, interval?: number }
+ *
+ * TaskScheduler class:
+ * - schedule(task: Task): string
+ *   Schedule a task. Returns a task ID. Higher priority executes first.
+ *   If `delay` is provided, task starts after that many milliseconds.
+ *   If `interval` is provided, task repeats every `interval` ms (recurring).
+ *
+ * - cancel(taskId: string): boolean
+ *   Cancel a scheduled task. Returns true if cancelled, false if not found.
+ *
+ * - start(): void
+ *   Start processing tasks from the queue.
+ *
+ * - stop(): void
+ *   Stop processing. Pending tasks remain in queue.
+ *
+ * - get pending(): number
+ *   Number of tasks waiting to execute.
+ *
+ * - get running(): boolean
+ *   Whether the scheduler is currently running.
+ *
+ * Rules:
+ * - Tasks execute in priority order (higher priority first)
+ * - Ties are broken by insertion order (FIFO)
+ * - Only one task executes at a time (sequential processing)
+ * - Recurring tasks reschedule themselves after completion
+ * - Delayed tasks wait before their first execution
+ *
+ * Bonus: Implement pause() / resume() and stats tracking (completed count, avg execution time).
+ */
+
+export interface Task {
+  id: string;
+  priority: number;
+  execute: () => void | Promise<void>;
+  delay?: number;
+  interval?: number;
+}
+
+export class TaskScheduler {
+  constructor() {
+    // YOUR CODE HERE
+  }
+
+  schedule(task: Task): string {
+    // YOUR CODE HERE
+    return '';
+  }
+
+  cancel(taskId: string): boolean {
+    // YOUR CODE HERE
+    return false;
+  }
+
+  start(): void {
+    // YOUR CODE HERE
+  }
+
+  stop(): void {
+    // YOUR CODE HERE
+  }
+
+  get pending(): number {
+    // YOUR CODE HERE
+    return 0;
+  }
+
+  get running(): boolean {
+    // YOUR CODE HERE
+    return false;
+  }
+
+  /**
+   * Bonus: Pause execution without clearing the queue
+   */
+  pause(): void {
+    // YOUR CODE HERE
+  }
+
+  /**
+   * Bonus: Resume after pause
+   */
+  resume(): void {
+    // YOUR CODE HERE
+  }
+
+  /**
+   * Bonus: Get execution statistics
+   */
+  stats(): { completed: number; avgExecutionMs: number } {
+    // YOUR CODE HERE
+    return { completed: 0, avgExecutionMs: 0 };
+  }
+}
+]==],
+    tests = [==[
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { TaskScheduler } from './challenge';
+
+const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
+
+describe('Task Scheduler with Priority Queue', () => {
+  beforeEach(() => { vi.useFakeTimers(); });
+  afterEach(() => { vi.restoreAllTimers(); });
+
+  it('schedules and executes a single task', async () => {
+    const scheduler = new TaskScheduler();
+    const fn = vi.fn();
+    scheduler.schedule({ id: 't1', priority: 1, execute: fn });
+    scheduler.start();
+    await vi.advanceTimersByTimeAsync(10);
+    expect(fn).toHaveBeenCalledOnce();
+  });
+
+  it('executes higher priority tasks first', async () => {
+    const scheduler = new TaskScheduler();
+    const order: number[] = [];
+    scheduler.schedule({ id: 't1', priority: 1, execute: () => order.push(1) });
+    scheduler.schedule({ id: 't2', priority: 3, execute: () => order.push(3) });
+    scheduler.schedule({ id: 't3', priority: 2, execute: () => order.push(2) });
+    scheduler.start();
+    await vi.advanceTimersByTimeAsync(50);
+    expect(order).toEqual([3, 2, 1]);
+  });
+
+  it('FIFO for same priority', async () => {
+    const scheduler = new TaskScheduler();
+    const order: string[] = [];
+    scheduler.schedule({ id: 'a', priority: 1, execute: () => order.push('a') });
+    scheduler.schedule({ id: 'b', priority: 1, execute: () => order.push('b') });
+    scheduler.schedule({ id: 'c', priority: 1, execute: () => order.push('c') });
+    scheduler.start();
+    await vi.advanceTimersByTimeAsync(50);
+    expect(order).toEqual(['a', 'b', 'c']);
+  });
+
+  it('delayed task waits before execution', async () => {
+    const scheduler = new TaskScheduler();
+    const fn = vi.fn();
+    scheduler.schedule({ id: 't1', priority: 1, execute: fn, delay: 100 });
+    scheduler.start();
+    await vi.advanceTimersByTimeAsync(50);
+    expect(fn).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(60);
+    expect(fn).toHaveBeenCalledOnce();
+  });
+
+  it('recurring task repeats', async () => {
+    const scheduler = new TaskScheduler();
+    const fn = vi.fn();
+    scheduler.schedule({ id: 't1', priority: 1, execute: fn, interval: 50 });
+    scheduler.start();
+    await vi.advanceTimersByTimeAsync(200);
+    expect(fn.mock.calls.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('cancel prevents execution', async () => {
+    const scheduler = new TaskScheduler();
+    const fn = vi.fn();
+    const id = scheduler.schedule({ id: 't1', priority: 1, execute: fn });
+    expect(scheduler.cancel(id)).toBe(true);
+    scheduler.start();
+    await vi.advanceTimersByTimeAsync(50);
+    expect(fn).not.toHaveBeenCalled();
+  });
+
+  it('cancel returns false for non-existent task', () => {
+    const scheduler = new TaskScheduler();
+    expect(scheduler.cancel('nope')).toBe(false);
+  });
+
+  it('pending count tracks queue size', () => {
+    const scheduler = new TaskScheduler();
+    expect(scheduler.pending).toBe(0);
+    scheduler.schedule({ id: 't1', priority: 1, execute: () => {} });
+    scheduler.schedule({ id: 't2', priority: 2, execute: () => {} });
+    expect(scheduler.pending).toBe(2);
+  });
+
+  it('pending decreases as tasks execute', async () => {
+    const scheduler = new TaskScheduler();
+    scheduler.schedule({ id: 't1', priority: 1, execute: () => {} });
+    scheduler.schedule({ id: 't2', priority: 1, execute: () => {} });
+    scheduler.start();
+    await vi.advanceTimersByTimeAsync(10);
+    expect(scheduler.pending).toBeLessThan(2);
+  });
+
+  it('running reflects scheduler state', async () => {
+    const scheduler = new TaskScheduler();
+    expect(scheduler.running).toBe(false);
+    scheduler.start();
+    expect(scheduler.running).toBe(true);
+    scheduler.stop();
+    expect(scheduler.running).toBe(false);
+  });
+
+  it('stop halts execution', async () => {
+    const scheduler = new TaskScheduler();
+    const fn = vi.fn();
+    scheduler.schedule({ id: 't1', priority: 1, execute: fn });
+    scheduler.schedule({ id: 't2', priority: 1, execute: fn });
+    scheduler.start();
+    await vi.advanceTimersByTimeAsync(5);
+    scheduler.stop();
+    const count = fn.mock.calls.length;
+    await vi.advanceTimersByTimeAsync(100);
+    expect(fn.mock.calls.length).toBe(count);
+  });
+
+  it('can restart after stop', async () => {
+    const scheduler = new TaskScheduler();
+    const fn = vi.fn();
+    scheduler.schedule({ id: 't1', priority: 1, execute: fn });
+    scheduler.start();
+    await vi.advanceTimersByTimeAsync(10);
+    scheduler.stop();
+    scheduler.schedule({ id: 't2', priority: 1, execute: fn });
+    scheduler.start();
+    await vi.advanceTimersByTimeAsync(10);
+    expect(fn).toHaveBeenCalledTimes(2);
+  });
+
+  it('async tasks complete before next task', async () => {
+    const scheduler = new TaskScheduler();
+    const order: number[] = [];
+    scheduler.schedule({
+      id: 't1',
+      priority: 1,
+      execute: async () => {
+        order.push(1);
+        await delay(50);
+        order.push(11);
+      },
+    });
+    scheduler.schedule({ id: 't2', priority: 1, execute: () => order.push(2) });
+    scheduler.start();
+    await vi.advanceTimersByTimeAsync(100);
+    expect(order).toEqual([1, 11, 2]);
+  });
+
+  it('error in task does not crash scheduler', async () => {
+    const scheduler = new TaskScheduler();
+    const fn = vi.fn();
+    scheduler.schedule({ id: 't1', priority: 1, execute: () => { throw new Error('boom'); } });
+    scheduler.schedule({ id: 't2', priority: 1, execute: fn });
+    scheduler.start();
+    await vi.advanceTimersByTimeAsync(50);
+    expect(fn).toHaveBeenCalledOnce();
+  });
+
+  it('pause stops execution temporarily', async () => {
+    const scheduler = new TaskScheduler();
+    const fn = vi.fn();
+    scheduler.schedule({ id: 't1', priority: 1, execute: fn, interval: 50 });
+    scheduler.start();
+    await vi.advanceTimersByTimeAsync(100);
+    const countBeforePause = fn.mock.calls.length;
+    scheduler.pause();
+    await vi.advanceTimersByTimeAsync(100);
+    expect(fn.mock.calls.length).toBe(countBeforePause);
+  });
+
+  it('resume continues after pause', async () => {
+    const scheduler = new TaskScheduler();
+    const fn = vi.fn();
+    scheduler.schedule({ id: 't1', priority: 1, execute: fn, interval: 30 });
+    scheduler.start();
+    await vi.advanceTimersByTimeAsync(60);
+    scheduler.pause();
+    const count = fn.mock.calls.length;
+    await vi.advanceTimersByTimeAsync(100);
+    scheduler.resume();
+    await vi.advanceTimersByTimeAsync(60);
+    expect(fn.mock.calls.length).toBeGreaterThan(count);
+  });
+
+  it('stats tracks completed tasks', async () => {
+    const scheduler = new TaskScheduler();
+    scheduler.schedule({ id: 't1', priority: 1, execute: () => {} });
+    scheduler.schedule({ id: 't2', priority: 1, execute: () => {} });
+    scheduler.start();
+    await vi.advanceTimersByTimeAsync(50);
+    const { completed } = scheduler.stats();
+    expect(completed).toBeGreaterThan(0);
+  });
+
+  it('stats tracks average execution time', async () => {
+    const scheduler = new TaskScheduler();
+    scheduler.schedule({
+      id: 't1',
+      priority: 1,
+      execute: async () => { await delay(20); },
+    });
+    scheduler.schedule({
+      id: 't2',
+      priority: 1,
+      execute: async () => { await delay(30); },
+    });
+    scheduler.start();
+    await vi.advanceTimersByTimeAsync(100);
+    const { avgExecutionMs } = scheduler.stats();
+    expect(avgExecutionMs).toBeGreaterThan(0);
+  });
+
+  it('stress: many tasks with mixed priorities', async () => {
+    const scheduler = new TaskScheduler();
+    const executed: number[] = [];
+    for (let i = 0; i < 100; i++) {
+      const priority = Math.floor(Math.random() * 5);
+      scheduler.schedule({
+        id: `t${i}`,
+        priority,
+        execute: () => executed.push(priority),
+      });
+    }
+    scheduler.start();
+    await vi.advanceTimersByTimeAsync(500);
+    expect(executed.length).toBe(100);
+    // First 10 should be high priority
+    const first10 = executed.slice(0, 10);
+    const avgFirst = first10.reduce((a, b) => a + b, 0) / 10;
+    const last10 = executed.slice(-10);
+    const avgLast = last10.reduce((a, b) => a + b, 0) / 10;
+    expect(avgFirst).toBeGreaterThanOrEqual(avgLast);
+  });
+
+  it('recurring task can be cancelled', async () => {
+    const scheduler = new TaskScheduler();
+    const fn = vi.fn();
+    const id = scheduler.schedule({ id: 't1', priority: 1, execute: fn, interval: 30 });
+    scheduler.start();
+    await vi.advanceTimersByTimeAsync(60);
+    scheduler.cancel(id);
+    const count = fn.mock.calls.length;
+    await vi.advanceTimersByTimeAsync(100);
+    expect(fn.mock.calls.length).toBe(count);
+  });
+
+  it('delayed recurring task waits then repeats', async () => {
+    const scheduler = new TaskScheduler();
+    const fn = vi.fn();
+    scheduler.schedule({ id: 't1', priority: 1, execute: fn, delay: 50, interval: 30 });
+    scheduler.start();
+    await vi.advanceTimersByTimeAsync(40);
+    expect(fn).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(20);
+    expect(fn).toHaveBeenCalledOnce();
+    await vi.advanceTimersByTimeAsync(30);
+    expect(fn.mock.calls.length).toBeGreaterThan(1);
+  });
+
+  it('handles zero-delay tasks', async () => {
+    const scheduler = new TaskScheduler();
+    const fn = vi.fn();
+    scheduler.schedule({ id: 't1', priority: 1, execute: fn, delay: 0 });
+    scheduler.start();
+    await vi.advanceTimersByTimeAsync(10);
+    expect(fn).toHaveBeenCalledOnce();
+  });
+});
+]==],
+  },
 }
 
 return M
