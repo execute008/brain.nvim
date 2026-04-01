@@ -9756,6 +9756,241 @@ describe('Task Scheduler with Priority Queue', () => {
 });
 ]==],
   },
+
+  {
+    name = "Union-Find (Disjoint Set Union)",
+    difficulty = "medium",
+    stub = [==[
+/**
+ * Union-Find (Disjoint Set Union)
+ *
+ * Implement a Union-Find data structure with path compression and union by rank.
+ * Used for efficiently tracking connected components in a graph.
+ *
+ * UnionFind class:
+ * - constructor(size: number) — Initialize n disjoint sets (0 to size-1).
+ * - find(x: number): number — Find the root representative of x's set. Apply path compression.
+ * - union(x: number, y: number): boolean — Merge the sets containing x and y.
+ *   Returns true if they were in different sets (merge happened), false if already connected.
+ * - connected(x: number, y: number): boolean — Check if x and y are in the same set.
+ * - count(): number — Return the number of disjoint sets.
+ *
+ * Operations must run in O(α(n)) amortized time, where α is the inverse Ackermann function.
+ *
+ * Bonus: Implement countComponents(n, edges) that uses Union-Find to count
+ * connected components in an undirected graph.
+ */
+
+export class UnionFind {
+  constructor(size: number) {
+    // YOUR CODE HERE
+  }
+
+  find(x: number): number {
+    // YOUR CODE HERE (implement with path compression)
+    return -1;
+  }
+
+  union(x: number, y: number): boolean {
+    // YOUR CODE HERE (implement with union by rank)
+    return false;
+  }
+
+  connected(x: number, y: number): boolean {
+    // YOUR CODE HERE
+    return false;
+  }
+
+  count(): number {
+    // YOUR CODE HERE
+    return 0;
+  }
+}
+
+/**
+ * Bonus: Count connected components in an undirected graph using Union-Find.
+ * @param n — number of nodes (labeled 0 to n-1)
+ * @param edges — array of [u, v] edges
+ */
+export function countComponents(n: number, edges: [number, number][]): number {
+  // YOUR CODE HERE
+  return 0;
+}
+]==],
+    tests = [==[
+import { describe, it, expect } from 'vitest';
+import { UnionFind, countComponents } from './challenge';
+
+describe('Union-Find', () => {
+  it('starts with n disjoint sets', () => {
+    const uf = new UnionFind(5);
+    expect(uf.count()).toBe(5);
+  });
+
+  it('find returns self initially', () => {
+    const uf = new UnionFind(5);
+    expect(uf.find(0)).toBe(0);
+    expect(uf.find(3)).toBe(3);
+  });
+
+  it('union connects two sets', () => {
+    const uf = new UnionFind(5);
+    expect(uf.union(0, 1)).toBe(true);
+    expect(uf.count()).toBe(4);
+  });
+
+  it('union of already connected returns false', () => {
+    const uf = new UnionFind(5);
+    uf.union(0, 1);
+    expect(uf.union(0, 1)).toBe(false);
+    expect(uf.count()).toBe(4);
+  });
+
+  it('connected checks membership', () => {
+    const uf = new UnionFind(5);
+    uf.union(0, 1);
+    expect(uf.connected(0, 1)).toBe(true);
+    expect(uf.connected(0, 2)).toBe(false);
+  });
+
+  it('transitive connections', () => {
+    const uf = new UnionFind(5);
+    uf.union(0, 1);
+    uf.union(1, 2);
+    expect(uf.connected(0, 2)).toBe(true);
+    expect(uf.count()).toBe(3);
+  });
+
+  it('multiple components', () => {
+    const uf = new UnionFind(10);
+    uf.union(0, 1);
+    uf.union(1, 2);
+    uf.union(3, 4);
+    uf.union(5, 6);
+    expect(uf.count()).toBe(6);
+  });
+
+  it('find with path compression', () => {
+    const uf = new UnionFind(5);
+    uf.union(0, 1);
+    uf.union(1, 2);
+    uf.union(2, 3);
+    const root = uf.find(0);
+    expect(uf.find(3)).toBe(root);
+  });
+
+  it('union by rank maintains balance', () => {
+    const uf = new UnionFind(8);
+    uf.union(0, 1);
+    uf.union(2, 3);
+    uf.union(0, 2);
+    uf.union(4, 5);
+    uf.union(6, 7);
+    uf.union(4, 6);
+    uf.union(0, 4);
+    expect(uf.count()).toBe(1);
+    expect(uf.connected(1, 7)).toBe(true);
+  });
+
+  it('self-union does nothing', () => {
+    const uf = new UnionFind(3);
+    expect(uf.union(1, 1)).toBe(false);
+    expect(uf.count()).toBe(3);
+  });
+
+  it('all nodes in one component', () => {
+    const uf = new UnionFind(10);
+    for (let i = 0; i < 9; i++) {
+      uf.union(i, i + 1);
+    }
+    expect(uf.count()).toBe(1);
+  });
+
+  it('stress: linear chain', () => {
+    const n = 1000;
+    const uf = new UnionFind(n);
+    for (let i = 0; i < n - 1; i++) {
+      uf.union(i, i + 1);
+    }
+    expect(uf.count()).toBe(1);
+    expect(uf.connected(0, n - 1)).toBe(true);
+  });
+
+  it('stress: many random unions', () => {
+    const uf = new UnionFind(500);
+    for (let i = 0; i < 1000; i++) {
+      const a = Math.floor(Math.random() * 500);
+      const b = Math.floor(Math.random() * 500);
+      uf.union(a, b);
+    }
+    expect(uf.count()).toBeGreaterThan(0);
+    expect(uf.count()).toBeLessThan(500);
+  });
+
+  it('isolated nodes remain isolated', () => {
+    const uf = new UnionFind(10);
+    uf.union(0, 1);
+    uf.union(2, 3);
+    expect(uf.connected(5, 6)).toBe(false);
+    expect(uf.count()).toBe(7);
+  });
+});
+
+describe('countComponents', () => {
+  it('no edges = n components', () => {
+    expect(countComponents(5, [])).toBe(5);
+  });
+
+  it('fully connected = 1 component', () => {
+    const edges: [number, number][] = [[0, 1], [1, 2], [2, 3], [3, 4]];
+    expect(countComponents(5, edges)).toBe(1);
+  });
+
+  it('two separate components', () => {
+    const edges: [number, number][] = [[0, 1], [2, 3]];
+    expect(countComponents(4, edges)).toBe(2);
+  });
+
+  it('three components with cycles', () => {
+    const edges: [number, number][] = [
+      [0, 1], [1, 2], [2, 0],
+      [3, 4], [4, 5], [5, 3],
+    ];
+    expect(countComponents(7, edges)).toBe(3);
+  });
+
+  it('single node graph', () => {
+    expect(countComponents(1, [])).toBe(1);
+  });
+
+  it('star graph', () => {
+    const edges: [number, number][] = [[0, 1], [0, 2], [0, 3], [0, 4]];
+    expect(countComponents(5, edges)).toBe(1);
+  });
+
+  it('duplicate edges handled correctly', () => {
+    const edges: [number, number][] = [[0, 1], [0, 1], [1, 2]];
+    expect(countComponents(3, edges)).toBe(1);
+  });
+
+  it('complex graph', () => {
+    const edges: [number, number][] = [
+      [0, 1], [1, 2], [3, 4], [5, 6], [6, 7], [7, 8], [8, 5],
+    ];
+    expect(countComponents(9, edges)).toBe(3);
+  });
+
+  it('stress: large graph', () => {
+    const n = 1000;
+    const edges: [number, number][] = [];
+    for (let i = 0; i < 500; i++) {
+      edges.push([i * 2, i * 2 + 1]);
+    }
+    expect(countComponents(n, edges)).toBe(500);
+  });
+});
+]==],
+  },
 }
 
 return M
