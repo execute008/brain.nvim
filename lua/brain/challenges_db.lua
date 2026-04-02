@@ -9991,6 +9991,279 @@ describe('countComponents', () => {
 });
 ]==],
   },
+  {
+    name = "Async Retry with Exponential Backoff",
+    difficulty = "medium",
+    stub = [==[
+/**
+ * Async Retry with Exponential Backoff
+ *
+ * Implement a retry wrapper for async functions with exponential backoff.
+ * This is a common pattern for handling flaky network requests or rate-limited APIs.
+ *
+ * retry<T>(fn: () => Promise<T>, options?: RetryOptions): Promise<T>
+ *
+ * Options:
+ * - maxAttempts: number (default 3) — Maximum number of attempts
+ * - initialDelayMs: number (default 100) — Initial delay before first retry
+ * - maxDelayMs: number (default 10000) — Cap on delay between retries
+ * - backoffMultiplier: number (default 2) — Multiply delay by this on each retry
+ * - shouldRetry: (error: any) => boolean (default: always true) — Predicate to decide if error is retryable
+ * - onRetry: (attempt: number, error: any, delayMs: number) => void — Optional callback before each retry
+ *
+ * Behavior:
+ * - First attempt runs immediately
+ * - If it fails and shouldRetry returns true, wait initialDelayMs and retry
+ * - Each subsequent retry doubles the delay (or by backoffMultiplier)
+ * - Delay is capped at maxDelayMs
+ * - After maxAttempts failures, throw the last error
+ * - If shouldRetry returns false, throw immediately without retrying
+ *
+ * Example:
+ *   retry(() => fetchUser(id), { maxAttempts: 5, initialDelayMs: 200 })
+ *
+ * Bonus: Add jitter to prevent thundering herd (randomize delay slightly).
+ */
+
+export interface RetryOptions {
+  maxAttempts?: number;
+  initialDelayMs?: number;
+  maxDelayMs?: number;
+  backoffMultiplier?: number;
+  shouldRetry?: (error: any) => boolean;
+  onRetry?: (attempt: number, error: any, delayMs: number) => void;
+  jitter?: boolean;
+}
+
+export async function retry<T>(
+  fn: () => Promise<T>,
+  options?: RetryOptions
+): Promise<T> {
+  // YOUR CODE HERE
+  throw new Error('Not implemented');
+}
+
+/**
+ * Bonus: Create a retryable wrapper function.
+ * Returns a new function that automatically retries with the given options.
+ */
+export function withRetry<T extends (...args: any[]) => Promise<any>>(
+  fn: T,
+  options?: RetryOptions
+): T {
+  // YOUR CODE HERE
+  return fn;
+}
+]==],
+    tests = [==[
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { retry, withRetry } from './challenge';
+
+const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
+
+describe('Async Retry with Exponential Backoff', () => {
+  beforeEach(() => { vi.useFakeTimers(); });
+  afterEach(() => { vi.restoreAllTimers(); });
+
+  it('succeeds on first attempt', async () => {
+    const fn = vi.fn(async () => 'success');
+    const promise = retry(fn);
+    await vi.runAllTimersAsync();
+    expect(await promise).toBe('success');
+    expect(fn).toHaveBeenCalledOnce();
+  });
+
+  it('retries on failure and eventually succeeds', async () => {
+    let attempts = 0;
+    const fn = vi.fn(async () => {
+      attempts++;
+      if (attempts < 3) throw new Error('fail');
+      return 'success';
+    });
+    const promise = retry(fn, { maxAttempts: 5, initialDelayMs: 100 });
+    await vi.runAllTimersAsync();
+    expect(await promise).toBe('success');
+    expect(fn).toHaveBeenCalledTimes(3);
+  });
+
+  it('throws after maxAttempts failures', async () => {
+    const fn = vi.fn(async () => { throw new Error('always fails'); });
+    const promise = retry(fn, { maxAttempts: 3, initialDelayMs: 50 });
+    await vi.runAllTimersAsync();
+    await expect(promise).rejects.toThrow('always fails');
+    expect(fn).toHaveBeenCalledTimes(3);
+  });
+
+  it('exponential backoff doubles delay', async () => {
+    let attempts = 0;
+    const delays: number[] = [];
+    const fn = vi.fn(async () => {
+      attempts++;
+      throw new Error('fail');
+    });
+    const onRetry = vi.fn((attempt, error, delayMs) => {
+      delays.push(delayMs);
+    });
+    const promise = retry(fn, { maxAttempts: 4, initialDelayMs: 100, onRetry });
+    await vi.runAllTimersAsync();
+    await promise.catch(() => {});
+    expect(delays).toEqual([100, 200, 400]);
+  });
+
+  it('respects maxDelayMs cap', async () => {
+    const delays: number[] = [];
+    const fn = vi.fn(async () => { throw new Error('fail'); });
+    const onRetry = (attempt: number, error: any, delayMs: number) => {
+      delays.push(delayMs);
+    };
+    const promise = retry(fn, {
+      maxAttempts: 5,
+      initialDelayMs: 100,
+      maxDelayMs: 300,
+      onRetry,
+    });
+    await vi.runAllTimersAsync();
+    await promise.catch(() => {});
+    expect(delays).toEqual([100, 200, 300, 300]);
+  });
+
+  it('shouldRetry prevents retry when false', async () => {
+    const fn = vi.fn(async () => { throw new Error('critical'); });
+    const shouldRetry = (error: any) => error.message !== 'critical';
+    const promise = retry(fn, { maxAttempts: 5, shouldRetry });
+    await vi.runAllTimersAsync();
+    await expect(promise).rejects.toThrow('critical');
+    expect(fn).toHaveBeenCalledOnce();
+  });
+
+  it('shouldRetry allows selective retry', async () => {
+    let attempts = 0;
+    const fn = vi.fn(async () => {
+      attempts++;
+      if (attempts === 1) throw new Error('retryable');
+      if (attempts === 2) throw new Error('fatal');
+      return 'ok';
+    });
+    const shouldRetry = (error: any) => error.message === 'retryable';
+    const promise = retry(fn, { maxAttempts: 5, shouldRetry, initialDelayMs: 50 });
+    await vi.runAllTimersAsync();
+    await expect(promise).rejects.toThrow('fatal');
+    expect(fn).toHaveBeenCalledTimes(2);
+  });
+
+  it('onRetry callback is called before each retry', async () => {
+    const fn = vi.fn(async () => { throw new Error('fail'); });
+    const onRetry = vi.fn();
+    const promise = retry(fn, { maxAttempts: 3, initialDelayMs: 50, onRetry });
+    await vi.runAllTimersAsync();
+    await promise.catch(() => {});
+    expect(onRetry).toHaveBeenCalledTimes(2);
+    expect(onRetry).toHaveBeenCalledWith(2, expect.any(Error), 50);
+    expect(onRetry).toHaveBeenCalledWith(3, expect.any(Error), 100);
+  });
+
+  it('custom backoffMultiplier', async () => {
+    const delays: number[] = [];
+    const fn = vi.fn(async () => { throw new Error('fail'); });
+    const onRetry = (attempt: number, error: any, delayMs: number) => {
+      delays.push(delayMs);
+    };
+    const promise = retry(fn, {
+      maxAttempts: 4,
+      initialDelayMs: 100,
+      backoffMultiplier: 3,
+      onRetry,
+    });
+    await vi.runAllTimersAsync();
+    await promise.catch(() => {});
+    expect(delays).toEqual([100, 300, 900]);
+  });
+
+  it('defaults: 3 attempts, 100ms initial delay', async () => {
+    const fn = vi.fn(async () => { throw new Error('fail'); });
+    const promise = retry(fn);
+    await vi.runAllTimersAsync();
+    await promise.catch(() => {});
+    expect(fn).toHaveBeenCalledTimes(3);
+  });
+
+  it('jitter adds randomness to delay', async () => {
+    const delays: number[] = [];
+    const fn = vi.fn(async () => { throw new Error('fail'); });
+    const onRetry = (attempt: number, error: any, delayMs: number) => {
+      delays.push(delayMs);
+    };
+    const promise = retry(fn, {
+      maxAttempts: 4,
+      initialDelayMs: 100,
+      jitter: true,
+      onRetry,
+    });
+    await vi.runAllTimersAsync();
+    await promise.catch(() => {});
+    // With jitter, delays should vary slightly from exact exponential values
+    expect(delays.length).toBe(3);
+    expect(delays[0]).toBeGreaterThan(50);
+    expect(delays[0]).toBeLessThan(150);
+  });
+
+  it('withRetry creates retryable function', async () => {
+    let attempts = 0;
+    const original = vi.fn(async (x: number) => {
+      attempts++;
+      if (attempts < 3) throw new Error('fail');
+      return x * 2;
+    });
+    const retryable = withRetry(original, { maxAttempts: 5, initialDelayMs: 50 });
+    const promise = retryable(10);
+    await vi.runAllTimersAsync();
+    expect(await promise).toBe(20);
+    expect(original).toHaveBeenCalledTimes(3);
+  });
+
+  it('withRetry preserves function signature', async () => {
+    const original = async (a: string, b: number) => `${a}-${b}`;
+    const retryable = withRetry(original, { maxAttempts: 2 });
+    const promise = retryable('test', 42);
+    await vi.runAllTimersAsync();
+    expect(await promise).toBe('test-42');
+  });
+
+  it('stress: many retries with backoff', async () => {
+    const fn = vi.fn(async () => { throw new Error('fail'); });
+    const promise = retry(fn, { maxAttempts: 10, initialDelayMs: 10, maxDelayMs: 500 });
+    await vi.runAllTimersAsync();
+    await promise.catch(() => {});
+    expect(fn).toHaveBeenCalledTimes(10);
+  });
+
+  it('zero maxAttempts throws immediately', async () => {
+    const fn = vi.fn(async () => { throw new Error('fail'); });
+    const promise = retry(fn, { maxAttempts: 0 });
+    await expect(promise).rejects.toThrow();
+    expect(fn).not.toHaveBeenCalled();
+  });
+
+  it('single attempt with failure throws', async () => {
+    const fn = vi.fn(async () => { throw new Error('fail'); });
+    const promise = retry(fn, { maxAttempts: 1 });
+    await vi.runAllTimersAsync();
+    await expect(promise).rejects.toThrow('fail');
+    expect(fn).toHaveBeenCalledOnce();
+  });
+
+  it('onRetry receives correct attempt number', async () => {
+    const fn = vi.fn(async () => { throw new Error('fail'); });
+    const attempts: number[] = [];
+    const onRetry = (attempt: number) => { attempts.push(attempt); };
+    const promise = retry(fn, { maxAttempts: 4, initialDelayMs: 50, onRetry });
+    await vi.runAllTimersAsync();
+    await promise.catch(() => {});
+    expect(attempts).toEqual([2, 3, 4]);
+  });
+});
+]==],
+  },
 }
 
 return M
