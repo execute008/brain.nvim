@@ -10265,5 +10265,331 @@ describe('Async Retry with Exponential Backoff', () => {
 ]==],
   },
 }
+  {
+    name = "Cancellable Promise Chain",
+    difficulty = "medium",
+    stub = [==[
+/**
+ * Cancellable Promise Chain
+ *
+ * Implement a CancellablePromise that extends Promise with cancellation support.
+ *
+ * Requirements:
+ * - CancellablePromise wraps a standard Promise
+ * - Exposes a cancel() method that prevents further execution
+ * - When cancelled, rejects with CancelledError
+ * - Supports chaining (.then, .catch) where cancellation propagates
+ * - Only cancels pending operations — completed promises stay resolved
+ *
+ * CancellablePromise class:
+ * - static resolve<T>(value: T): CancellablePromise<T>
+ * - static reject<T>(reason: any): CancellablePromise<T>
+ * - static all<T>(promises: CancellablePromise<T>[]): CancellablePromise<T[]>
+ *   If ANY promise is cancelled, cancel all and reject with CancelledError
+ *
+ * - cancel(): void — Cancel this promise and all chained promises
+ * - isCancelled: boolean — Check if cancelled
+ * - then/catch/finally — Standard Promise methods that return CancellablePromise
+ *
+ * Bonus: Implement CancellablePromise.race() that cancels losers when one resolves.
+ *
+ * Example:
+ *   const p = new CancellablePromise((resolve) => {
+ *     setTimeout(() => resolve('done'), 1000);
+ *   });
+ *   p.then(v => console.log(v)); // Would log 'done' after 1s
+ *   p.cancel(); // Prevents execution, rejects with CancelledError
+ */
+
+export class CancelledError extends Error {
+  constructor() {
+    super('Promise was cancelled');
+    this.name = 'CancelledError';
+  }
+}
+
+type Executor<T> = (
+  resolve: (value: T | PromiseLike<T>) => void,
+  reject: (reason?: any) => void
+) => void;
+
+export class CancellablePromise<T> {
+  constructor(executor: Executor<T>) {
+    // YOUR CODE HERE
+  }
+
+  cancel(): void {
+    // YOUR CODE HERE
+  }
+
+  get isCancelled(): boolean {
+    // YOUR CODE HERE
+    return false;
+  }
+
+  then<R1 = T, R2 = never>(
+    onFulfilled?: ((value: T) => R1 | PromiseLike<R1>) | null,
+    onRejected?: ((reason: any) => R2 | PromiseLike<R2>) | null
+  ): CancellablePromise<R1 | R2> {
+    // YOUR CODE HERE
+    return new CancellablePromise(() => {});
+  }
+
+  catch<R = never>(
+    onRejected?: ((reason: any) => R | PromiseLike<R>) | null
+  ): CancellablePromise<T | R> {
+    // YOUR CODE HERE
+    return new CancellablePromise(() => {});
+  }
+
+  finally(onFinally?: (() => void) | null): CancellablePromise<T> {
+    // YOUR CODE HERE
+    return new CancellablePromise(() => {});
+  }
+
+  static resolve<T>(value: T): CancellablePromise<T> {
+    // YOUR CODE HERE
+    return new CancellablePromise(() => {});
+  }
+
+  static reject<T = never>(reason?: any): CancellablePromise<T> {
+    // YOUR CODE HERE
+    return new CancellablePromise(() => {});
+  }
+
+  static all<T>(promises: CancellablePromise<T>[]): CancellablePromise<T[]> {
+    // YOUR CODE HERE
+    return new CancellablePromise(() => {});
+  }
+
+  /**
+   * Bonus: Race where losers are automatically cancelled when winner resolves.
+   */
+  static race<T>(promises: CancellablePromise<T>[]): CancellablePromise<T> {
+    // YOUR CODE HERE
+    return new CancellablePromise(() => {});
+  }
+}
+
+]==],
+    tests = [==[
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { CancellablePromise, CancelledError } from './challenge';
+
+describe('CancellablePromise', () => {
+  beforeEach(() => { vi.useFakeTimers(); });
+  afterEach(() => { vi.restoreAllTimers(); });
+
+  it('resolves normally when not cancelled', async () => {
+    const p = new CancellablePromise<number>((resolve) => {
+      setTimeout(() => resolve(42), 100);
+    });
+    vi.advanceTimersByTime(100);
+    await expect(p).resolves.toBe(42);
+  });
+
+  it('cancel before resolution rejects with CancelledError', async () => {
+    const p = new CancellablePromise<number>((resolve) => {
+      setTimeout(() => resolve(42), 100);
+    });
+    p.cancel();
+    await expect(p).rejects.toThrow(CancelledError);
+  });
+
+  it('isCancelled returns true after cancel', () => {
+    const p = new CancellablePromise<void>(() => {});
+    expect(p.isCancelled).toBe(false);
+    p.cancel();
+    expect(p.isCancelled).toBe(true);
+  });
+
+  it('cancel after resolution has no effect', async () => {
+    const p = new CancellablePromise<number>((resolve) => {
+      resolve(10);
+    });
+    await p;
+    p.cancel();
+    expect(p.isCancelled).toBe(false);
+    await expect(p).resolves.toBe(10);
+  });
+
+  it('chained then receives value', async () => {
+    const p = CancellablePromise.resolve(5).then(x => x * 2);
+    await expect(p).resolves.toBe(10);
+  });
+
+  it('chained then propagates cancellation', async () => {
+    const p = new CancellablePromise<number>((resolve) => {
+      setTimeout(() => resolve(1), 100);
+    });
+    const chained = p.then(x => x + 10);
+    p.cancel();
+    await expect(chained).rejects.toThrow(CancelledError);
+  });
+
+  it('catch handles rejection', async () => {
+    const p = CancellablePromise.reject('error').catch(() => 'handled');
+    await expect(p).resolves.toBe('handled');
+  });
+
+  it('catch handles CancelledError', async () => {
+    const p = new CancellablePromise<void>(() => {});
+    p.cancel();
+    const handled = p.catch((e) => (e instanceof CancelledError ? 'cancelled' : 'error'));
+    await expect(handled).resolves.toBe('cancelled');
+  });
+
+  it('finally runs on resolution', async () => {
+    const fn = vi.fn();
+    const p = CancellablePromise.resolve(1).finally(fn);
+    await p;
+    expect(fn).toHaveBeenCalledOnce();
+  });
+
+  it('finally runs on cancellation', async () => {
+    const fn = vi.fn();
+    const p = new CancellablePromise<void>(() => {});
+    const chained = p.finally(fn);
+    p.cancel();
+    await chained.catch(() => {});
+    expect(fn).toHaveBeenCalledOnce();
+  });
+
+  it('static resolve creates resolved promise', async () => {
+    const p = CancellablePromise.resolve(42);
+    await expect(p).resolves.toBe(42);
+  });
+
+  it('static reject creates rejected promise', async () => {
+    const p = CancellablePromise.reject('boom');
+    await expect(p).rejects.toBe('boom');
+  });
+
+  it('all resolves with all values', async () => {
+    const p1 = CancellablePromise.resolve(1);
+    const p2 = CancellablePromise.resolve(2);
+    const p3 = CancellablePromise.resolve(3);
+    const all = CancellablePromise.all([p1, p2, p3]);
+    await expect(all).resolves.toEqual([1, 2, 3]);
+  });
+
+  it('all rejects if any promise rejects', async () => {
+    const p1 = CancellablePromise.resolve(1);
+    const p2 = CancellablePromise.reject('error');
+    const p3 = CancellablePromise.resolve(3);
+    const all = CancellablePromise.all([p1, p2, p3]);
+    await expect(all).rejects.toBe('error');
+  });
+
+  it('all cancels all promises if one is cancelled', async () => {
+    const p1 = new CancellablePromise<number>((resolve) => {
+      setTimeout(() => resolve(1), 100);
+    });
+    const p2 = new CancellablePromise<number>((resolve) => {
+      setTimeout(() => resolve(2), 100);
+    });
+    const all = CancellablePromise.all([p1, p2]);
+    p1.cancel();
+    await expect(all).rejects.toThrow(CancelledError);
+    expect(p2.isCancelled).toBe(true);
+  });
+
+  it('all with empty array resolves immediately', async () => {
+    const all = CancellablePromise.all([]);
+    await expect(all).resolves.toEqual([]);
+  });
+
+  it('race resolves with first', async () => {
+    const p1 = new CancellablePromise<number>((resolve) => {
+      setTimeout(() => resolve(1), 100);
+    });
+    const p2 = new CancellablePromise<number>((resolve) => {
+      setTimeout(() => resolve(2), 50);
+    });
+    const race = CancellablePromise.race([p1, p2]);
+    vi.advanceTimersByTime(50);
+    await expect(race).resolves.toBe(2);
+  });
+
+  it('race cancels losers when winner resolves', async () => {
+    const p1 = new CancellablePromise<number>((resolve) => {
+      setTimeout(() => resolve(1), 100);
+    });
+    const p2 = new CancellablePromise<number>((resolve) => {
+      setTimeout(() => resolve(2), 50);
+    });
+    const race = CancellablePromise.race([p1, p2]);
+    vi.advanceTimersByTime(50);
+    await race;
+    expect(p1.isCancelled).toBe(true);
+  });
+
+  it('cancel propagates through multiple then calls', async () => {
+    const p = new CancellablePromise<number>((resolve) => {
+      setTimeout(() => resolve(1), 100);
+    });
+    const chain = p.then(x => x + 1).then(x => x * 2).then(x => x + 10);
+    p.cancel();
+    await expect(chain).rejects.toThrow(CancelledError);
+  });
+
+  it('cancelling a chained promise does not cancel parent', async () => {
+    const parent = new CancellablePromise<number>((resolve) => {
+      setTimeout(() => resolve(10), 100);
+    });
+    const child = parent.then(x => x * 2);
+    child.cancel();
+    vi.advanceTimersByTime(100);
+    await expect(parent).resolves.toBe(10);
+  });
+
+  it('stress: many chained operations', async () => {
+    let p: CancellablePromise<number> = CancellablePromise.resolve(0);
+    for (let i = 0; i < 100; i++) {
+      p = p.then(x => x + 1);
+    }
+    await expect(p).resolves.toBe(100);
+  });
+
+  it('stress: cancel in middle of long chain', async () => {
+    const p = new CancellablePromise<number>((resolve) => {
+      setTimeout(() => resolve(0), 100);
+    });
+    let chain: CancellablePromise<number> = p;
+    for (let i = 0; i < 50; i++) {
+      chain = chain.then(x => x + 1);
+    }
+    p.cancel();
+    await expect(chain).rejects.toThrow(CancelledError);
+  });
+
+  it('all with mixed resolved and pending', async () => {
+    const p1 = CancellablePromise.resolve(1);
+    const p2 = new CancellablePromise<number>((resolve) => {
+      setTimeout(() => resolve(2), 50);
+    });
+    const all = CancellablePromise.all([p1, p2]);
+    vi.advanceTimersByTime(50);
+    await expect(all).resolves.toEqual([1, 2]);
+  });
+
+  it('executor throws synchronously', async () => {
+    const p = new CancellablePromise<void>(() => {
+      throw new Error('sync error');
+    });
+    await expect(p).rejects.toThrow('sync error');
+  });
+
+  it('cancelling after rejection has no effect', async () => {
+    const p = CancellablePromise.reject('error');
+    await p.catch(() => {});
+    p.cancel();
+    expect(p.isCancelled).toBe(false);
+  });
+});
+
+]==],
+  },
+
 
 return M

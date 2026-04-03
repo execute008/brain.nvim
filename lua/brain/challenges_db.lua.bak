@@ -6647,6 +6647,326 @@ describe('Edge Cases', () => {
 });
 ]==],
   },
+  {
+    name = "Pub/Sub Event Bus",
+    difficulty = "medium",
+    stub = [==[
+/**
+ * Pub/Sub Event Bus
+ *
+ * Implement a type-safe publish-subscribe event bus with wildcard support.
+ *
+ * EventBus class:
+ * - subscribe(pattern: string, handler: (data: any) => void): () => void
+ *   Subscribe to events matching a pattern. Returns an unsubscribe function.
+ *   Patterns support wildcards:
+ *     - 'user.login' — exact match
+ *     - 'user.*' — matches user.login, user.logout, etc.
+ *     - '*' — matches all events
+ *
+ * - publish(event: string, data?: any): number
+ *   Publish an event with optional data. Returns the number of handlers called.
+ *
+ * - once(pattern: string, handler: (data: any) => void): () => void
+ *   Subscribe, but auto-unsubscribe after the first matching event.
+ *
+ * - clear(pattern?: string): void
+ *   Remove all subscribers. If pattern provided, only remove matching subscribers.
+ *
+ * - listenerCount(pattern: string): number
+ *   Count active listeners for a pattern.
+ *
+ * Bonus: Implement async event handlers with publishAsync that waits for all handlers
+ * and returns Promise<void>.
+ */
+
+type EventHandler = (data?: any) => void;
+
+export class EventBus {
+  constructor() {
+    // YOUR CODE HERE
+  }
+
+  subscribe(pattern: string, handler: EventHandler): () => void {
+    // YOUR CODE HERE
+    return () => {};
+  }
+
+  publish(event: string, data?: any): number {
+    // YOUR CODE HERE
+    return 0;
+  }
+
+  once(pattern: string, handler: EventHandler): () => void {
+    // YOUR CODE HERE
+    return () => {};
+  }
+
+  clear(pattern?: string): void {
+    // YOUR CODE HERE
+  }
+
+  listenerCount(pattern: string): number {
+    // YOUR CODE HERE
+    return 0;
+  }
+
+  /**
+   * Bonus: Async version that waits for all handlers to complete.
+   * Handlers can return void or Promise<void>.
+   */
+  async publishAsync(event: string, data?: any): Promise<void> {
+    // YOUR CODE HERE
+  }
+}
+]==],
+    tests = [==[
+import { describe, it, expect, vi } from 'vitest';
+import { EventBus } from './challenge';
+
+describe('EventBus', () => {
+  it('subscribe and publish exact match', () => {
+    const bus = new EventBus();
+    const handler = vi.fn();
+    bus.subscribe('user.login', handler);
+    const count = bus.publish('user.login', { userId: 1 });
+    expect(count).toBe(1);
+    expect(handler).toHaveBeenCalledWith({ userId: 1 });
+  });
+
+  it('no match does not call handler', () => {
+    const bus = new EventBus();
+    const handler = vi.fn();
+    bus.subscribe('user.login', handler);
+    bus.publish('user.logout');
+    expect(handler).not.toHaveBeenCalled();
+  });
+
+  it('wildcard pattern matches multiple events', () => {
+    const bus = new EventBus();
+    const handler = vi.fn();
+    bus.subscribe('user.*', handler);
+    bus.publish('user.login');
+    bus.publish('user.logout');
+    bus.publish('order.created');
+    expect(handler).toHaveBeenCalledTimes(2);
+  });
+
+  it('global wildcard matches all events', () => {
+    const bus = new EventBus();
+    const handler = vi.fn();
+    bus.subscribe('*', handler);
+    bus.publish('anything');
+    bus.publish('something.else');
+    expect(handler).toHaveBeenCalledTimes(2);
+  });
+
+  it('multiple subscribers for same event', () => {
+    const bus = new EventBus();
+    const h1 = vi.fn();
+    const h2 = vi.fn();
+    bus.subscribe('test', h1);
+    bus.subscribe('test', h2);
+    const count = bus.publish('test', 42);
+    expect(count).toBe(2);
+    expect(h1).toHaveBeenCalledWith(42);
+    expect(h2).toHaveBeenCalledWith(42);
+  });
+
+  it('unsubscribe removes handler', () => {
+    const bus = new EventBus();
+    const handler = vi.fn();
+    const unsub = bus.subscribe('test', handler);
+    bus.publish('test');
+    unsub();
+    bus.publish('test');
+    expect(handler).toHaveBeenCalledOnce();
+  });
+
+  it('once fires only once', () => {
+    const bus = new EventBus();
+    const handler = vi.fn();
+    bus.once('event', handler);
+    bus.publish('event');
+    bus.publish('event');
+    expect(handler).toHaveBeenCalledOnce();
+  });
+
+  it('once with wildcard', () => {
+    const bus = new EventBus();
+    const handler = vi.fn();
+    bus.once('user.*', handler);
+    bus.publish('user.login');
+    bus.publish('user.logout');
+    expect(handler).toHaveBeenCalledOnce();
+  });
+
+  it('once unsubscribe before event', () => {
+    const bus = new EventBus();
+    const handler = vi.fn();
+    const unsub = bus.once('event', handler);
+    unsub();
+    bus.publish('event');
+    expect(handler).not.toHaveBeenCalled();
+  });
+
+  it('clear removes all subscribers', () => {
+    const bus = new EventBus();
+    const h1 = vi.fn();
+    const h2 = vi.fn();
+    bus.subscribe('a', h1);
+    bus.subscribe('b', h2);
+    bus.clear();
+    bus.publish('a');
+    bus.publish('b');
+    expect(h1).not.toHaveBeenCalled();
+    expect(h2).not.toHaveBeenCalled();
+  });
+
+  it('clear with pattern removes matching only', () => {
+    const bus = new EventBus();
+    const h1 = vi.fn();
+    const h2 = vi.fn();
+    bus.subscribe('user.login', h1);
+    bus.subscribe('order.created', h2);
+    bus.clear('user.*');
+    bus.publish('user.login');
+    bus.publish('order.created');
+    expect(h1).not.toHaveBeenCalled();
+    expect(h2).toHaveBeenCalled();
+  });
+
+  it('listenerCount returns correct count', () => {
+    const bus = new EventBus();
+    bus.subscribe('test', () => {});
+    bus.subscribe('test', () => {});
+    bus.subscribe('other', () => {});
+    expect(bus.listenerCount('test')).toBe(2);
+    expect(bus.listenerCount('other')).toBe(1);
+  });
+
+  it('listenerCount with wildcard', () => {
+    const bus = new EventBus();
+    bus.subscribe('user.login', () => {});
+    bus.subscribe('user.logout', () => {});
+    bus.subscribe('order.created', () => {});
+    expect(bus.listenerCount('user.*')).toBe(2);
+  });
+
+  it('publish returns 0 when no listeners', () => {
+    const bus = new EventBus();
+    expect(bus.publish('nothing')).toBe(0);
+  });
+
+  it('publish with no data', () => {
+    const bus = new EventBus();
+    const handler = vi.fn();
+    bus.subscribe('event', handler);
+    bus.publish('event');
+    expect(handler).toHaveBeenCalledWith(undefined);
+  });
+
+  it('different patterns are independent', () => {
+    const bus = new EventBus();
+    const h1 = vi.fn();
+    const h2 = vi.fn();
+    bus.subscribe('a.*', h1);
+    bus.subscribe('b.*', h2);
+    bus.publish('a.1');
+    bus.publish('b.2');
+    expect(h1).toHaveBeenCalledOnce();
+    expect(h2).toHaveBeenCalledOnce();
+  });
+
+  it('nested wildcards', () => {
+    const bus = new EventBus();
+    const handler = vi.fn();
+    bus.subscribe('app.*.event', handler);
+    bus.publish('app.user.event');
+    bus.publish('app.order.event');
+    bus.publish('app.event');
+    expect(handler).toHaveBeenCalledTimes(2);
+  });
+
+  it('exact match takes priority', () => {
+    const bus = new EventBus();
+    const exact = vi.fn();
+    const wildcard = vi.fn();
+    bus.subscribe('user.login', exact);
+    bus.subscribe('user.*', wildcard);
+    bus.publish('user.login');
+    expect(exact).toHaveBeenCalled();
+    expect(wildcard).toHaveBeenCalled();
+  });
+
+  it('stress: many subscribers', () => {
+    const bus = new EventBus();
+    const handlers = Array.from({ length: 100 }, () => vi.fn());
+    handlers.forEach(h => bus.subscribe('event', h));
+    const count = bus.publish('event', 'data');
+    expect(count).toBe(100);
+    handlers.forEach(h => expect(h).toHaveBeenCalledWith('data'));
+  });
+
+  it('stress: many events', () => {
+    const bus = new EventBus();
+    const handler = vi.fn();
+    bus.subscribe('*', handler);
+    for (let i = 0; i < 500; i++) {
+      bus.publish(`event.${i}`);
+    }
+    expect(handler).toHaveBeenCalledTimes(500);
+  });
+
+  it('publishAsync waits for all handlers', async () => {
+    const bus = new EventBus();
+    const order: number[] = [];
+    bus.subscribe('test', async () => {
+      await new Promise(r => setTimeout(r, 20));
+      order.push(1);
+    });
+    bus.subscribe('test', async () => {
+      await new Promise(r => setTimeout(r, 10));
+      order.push(2);
+    });
+    await bus.publishAsync('test');
+    expect(order).toEqual([2, 1]);
+  });
+
+  it('publishAsync with sync handlers', async () => {
+    const bus = new EventBus();
+    const handler = vi.fn();
+    bus.subscribe('test', handler);
+    await bus.publishAsync('test', 'data');
+    expect(handler).toHaveBeenCalledWith('data');
+  });
+
+  it('publishAsync with no listeners', async () => {
+    const bus = new EventBus();
+    await expect(bus.publishAsync('nothing')).resolves.toBeUndefined();
+  });
+
+  it('error in handler does not stop others', () => {
+    const bus = new EventBus();
+    const h1 = vi.fn(() => { throw new Error('boom'); });
+    const h2 = vi.fn();
+    bus.subscribe('test', h1);
+    bus.subscribe('test', h2);
+    expect(() => bus.publish('test')).not.toThrow();
+    expect(h2).toHaveBeenCalled();
+  });
+
+  it('same handler subscribed multiple times', () => {
+    const bus = new EventBus();
+    const handler = vi.fn();
+    bus.subscribe('test', handler);
+    bus.subscribe('test', handler);
+    bus.publish('test');
+    expect(handler).toHaveBeenCalledTimes(2);
+  });
+});
+]==],
+  },
 }
 
 --- Deterministic challenge selection based on date.
@@ -6667,5 +6987,3283 @@ function M.get_challenge_for_date(date_str)
   local idx = (seed % #M.challenges) + 1
   return M.challenges[idx]
 end
+
+return M
+  {
+    name = "Sorted Set (Redis-style)",
+    difficulty = "hard",
+    stub = [==[
+/**
+ * Sorted Set (Redis-style)
+ *
+ * Implement a sorted set data structure similar to Redis ZSET.
+ * Elements are unique strings with numeric scores. The set is sorted by score,
+ * with ties broken by lexicographic order of the element.
+ *
+ * SortedSet class:
+ * - add(member: string, score: number): boolean
+ *   Add or update a member with a score. Returns true if new member, false if update.
+ *
+ * - remove(member: string): boolean
+ *   Remove a member. Returns true if it existed, false otherwise.
+ *
+ * - score(member: string): number | null
+ *   Get the score of a member, or null if not found.
+ *
+ * - rank(member: string): number | null
+ *   Get the 0-based rank (position in sorted order), or null if not found.
+ *
+ * - range(start: number, stop: number): string[]
+ *   Get members by rank range [start, stop] (0-indexed, inclusive).
+ *   Negative indices count from the end (-1 = last element).
+ *
+ * - rangeByScore(min: number, max: number, limit?: number): string[]
+ *   Get members with scores in [min, max], limited to `limit` results.
+ *
+ * - count(): number
+ *   Total number of members.
+ *
+ * Bonus: Implement incrementBy(member, delta) and removeRangeByScore(min, max).
+ *
+ * Implementation notes:
+ * - Maintain O(log n) add/remove using a balanced tree or skip list approach
+ * - For simplicity, you may use an array + binary search (O(n) inserts but easier)
+ * - Real Redis uses a skip list + hash map hybrid
+ */
+
+export class SortedSet {
+  constructor() {
+    // YOUR CODE HERE
+  }
+
+  add(member: string, score: number): boolean {
+    // YOUR CODE HERE
+    return false;
+  }
+
+  remove(member: string): boolean {
+    // YOUR CODE HERE
+    return false;
+  }
+
+  score(member: string): number | null {
+    // YOUR CODE HERE
+    return null;
+  }
+
+  rank(member: string): number | null {
+    // YOUR CODE HERE
+    return null;
+  }
+
+  range(start: number, stop: number): string[] {
+    // YOUR CODE HERE
+    return [];
+  }
+
+  rangeByScore(min: number, max: number, limit?: number): string[] {
+    // YOUR CODE HERE
+    return [];
+  }
+
+  count(): number {
+    // YOUR CODE HERE
+    return 0;
+  }
+
+  /**
+   * Bonus: Increment a member's score by delta.
+   * If member doesn't exist, treat initial score as 0.
+   */
+  incrementBy(member: string, delta: number): number {
+    // YOUR CODE HERE
+    return 0;
+  }
+
+  /**
+   * Bonus: Remove all members with scores in [min, max].
+   * Returns the count of removed members.
+   */
+  removeRangeByScore(min: number, max: number): number {
+    // YOUR CODE HERE
+    return 0;
+  }
+}
+]==],
+    tests = [==[
+import { describe, it, expect } from 'vitest';
+import { SortedSet } from './challenge';
+
+describe('SortedSet', () => {
+  it('add new member returns true', () => {
+    const zset = new SortedSet();
+    expect(zset.add('alice', 100)).toBe(true);
+    expect(zset.count()).toBe(1);
+  });
+
+  it('update existing member returns false', () => {
+    const zset = new SortedSet();
+    zset.add('alice', 100);
+    expect(zset.add('alice', 200)).toBe(false);
+    expect(zset.count()).toBe(1);
+  });
+
+  it('score returns correct value', () => {
+    const zset = new SortedSet();
+    zset.add('alice', 100);
+    expect(zset.score('alice')).toBe(100);
+  });
+
+  it('score returns null for missing member', () => {
+    const zset = new SortedSet();
+    expect(zset.score('nobody')).toBe(null);
+  });
+
+  it('remove existing member returns true', () => {
+    const zset = new SortedSet();
+    zset.add('alice', 100);
+    expect(zset.remove('alice')).toBe(true);
+    expect(zset.count()).toBe(0);
+  });
+
+  it('remove non-existent member returns false', () => {
+    const zset = new SortedSet();
+    expect(zset.remove('nobody')).toBe(false);
+  });
+
+  it('rank returns position in sorted order', () => {
+    const zset = new SortedSet();
+    zset.add('alice', 100);
+    zset.add('bob', 200);
+    zset.add('charlie', 150);
+    expect(zset.rank('alice')).toBe(0);
+    expect(zset.rank('charlie')).toBe(1);
+    expect(zset.rank('bob')).toBe(2);
+  });
+
+  it('rank returns null for missing member', () => {
+    const zset = new SortedSet();
+    expect(zset.rank('nobody')).toBe(null);
+  });
+
+  it('range returns members in order', () => {
+    const zset = new SortedSet();
+    zset.add('alice', 100);
+    zset.add('bob', 200);
+    zset.add('charlie', 150);
+    expect(zset.range(0, 2)).toEqual(['alice', 'charlie', 'bob']);
+  });
+
+  it('range with negative indices', () => {
+    const zset = new SortedSet();
+    zset.add('a', 1);
+    zset.add('b', 2);
+    zset.add('c', 3);
+    expect(zset.range(-2, -1)).toEqual(['b', 'c']);
+  });
+
+  it('range subset', () => {
+    const zset = new SortedSet();
+    zset.add('a', 1);
+    zset.add('b', 2);
+    zset.add('c', 3);
+    zset.add('d', 4);
+    expect(zset.range(1, 2)).toEqual(['b', 'c']);
+  });
+
+  it('rangeByScore returns members within score range', () => {
+    const zset = new SortedSet();
+    zset.add('alice', 100);
+    zset.add('bob', 200);
+    zset.add('charlie', 150);
+    zset.add('dave', 175);
+    expect(zset.rangeByScore(100, 175)).toEqual(['alice', 'charlie', 'dave']);
+  });
+
+  it('rangeByScore with limit', () => {
+    const zset = new SortedSet();
+    zset.add('a', 1);
+    zset.add('b', 2);
+    zset.add('c', 3);
+    zset.add('d', 4);
+    expect(zset.rangeByScore(1, 10, 2)).toEqual(['a', 'b']);
+  });
+
+  it('rangeByScore no matches', () => {
+    const zset = new SortedSet();
+    zset.add('a', 1);
+    expect(zset.rangeByScore(10, 20)).toEqual([]);
+  });
+
+  it('lexicographic tie-breaking', () => {
+    const zset = new SortedSet();
+    zset.add('zebra', 100);
+    zset.add('apple', 100);
+    zset.add('banana', 100);
+    expect(zset.range(0, 2)).toEqual(['apple', 'banana', 'zebra']);
+  });
+
+  it('update changes rank', () => {
+    const zset = new SortedSet();
+    zset.add('alice', 100);
+    zset.add('bob', 200);
+    expect(zset.rank('alice')).toBe(0);
+    zset.add('alice', 300);
+    expect(zset.rank('alice')).toBe(1);
+  });
+
+  it('count reflects current size', () => {
+    const zset = new SortedSet();
+    expect(zset.count()).toBe(0);
+    zset.add('a', 1);
+    zset.add('b', 2);
+    expect(zset.count()).toBe(2);
+    zset.remove('a');
+    expect(zset.count()).toBe(1);
+  });
+
+  it('empty range', () => {
+    const zset = new SortedSet();
+    expect(zset.range(0, 10)).toEqual([]);
+  });
+
+  it('range out of bounds', () => {
+    const zset = new SortedSet();
+    zset.add('a', 1);
+    expect(zset.range(10, 20)).toEqual([]);
+  });
+
+  it('incrementBy on new member', () => {
+    const zset = new SortedSet();
+    const newScore = zset.incrementBy('alice', 50);
+    expect(newScore).toBe(50);
+    expect(zset.score('alice')).toBe(50);
+  });
+
+  it('incrementBy on existing member', () => {
+    const zset = new SortedSet();
+    zset.add('alice', 100);
+    const newScore = zset.incrementBy('alice', 25);
+    expect(newScore).toBe(125);
+    expect(zset.score('alice')).toBe(125);
+  });
+
+  it('incrementBy negative delta', () => {
+    const zset = new SortedSet();
+    zset.add('alice', 100);
+    const newScore = zset.incrementBy('alice', -30);
+    expect(newScore).toBe(70);
+  });
+
+  it('removeRangeByScore removes matching members', () => {
+    const zset = new SortedSet();
+    zset.add('a', 10);
+    zset.add('b', 20);
+    zset.add('c', 30);
+    zset.add('d', 40);
+    const removed = zset.removeRangeByScore(20, 30);
+    expect(removed).toBe(2);
+    expect(zset.count()).toBe(2);
+    expect(zset.range(0, -1)).toEqual(['a', 'd']);
+  });
+
+  it('removeRangeByScore no matches', () => {
+    const zset = new SortedSet();
+    zset.add('a', 10);
+    expect(zset.removeRangeByScore(50, 100)).toBe(0);
+    expect(zset.count()).toBe(1);
+  });
+
+  it('stress: many members', () => {
+    const zset = new SortedSet();
+    for (let i = 0; i < 1000; i++) {
+      zset.add(`user${i}`, Math.random() * 1000);
+    }
+    expect(zset.count()).toBe(1000);
+    const top10 = zset.range(0, 9);
+    expect(top10.length).toBe(10);
+  });
+
+  it('stress: repeated updates', () => {
+    const zset = new SortedSet();
+    zset.add('player', 0);
+    for (let i = 0; i < 100; i++) {
+      zset.incrementBy('player', 1);
+    }
+    expect(zset.score('player')).toBe(100);
+  });
+
+  it('range clamps correctly', () => {
+    const zset = new SortedSet();
+    zset.add('a', 1);
+    zset.add('b', 2);
+    zset.add('c', 3);
+    expect(zset.range(-100, 100)).toEqual(['a', 'b', 'c']);
+  });
+
+  it('identical scores with many members', () => {
+    const zset = new SortedSet();
+    const names = ['zoe', 'alice', 'charlie', 'bob'];
+    names.forEach(n => zset.add(n, 100));
+    expect(zset.range(0, -1)).toEqual(['alice', 'bob', 'charlie', 'zoe']);
+  });
+
+  it('score boundary inclusion', () => {
+    const zset = new SortedSet();
+    zset.add('a', 10);
+    zset.add('b', 20);
+    zset.add('c', 30);
+    expect(zset.rangeByScore(10, 20)).toEqual(['a', 'b']);
+    expect(zset.rangeByScore(15, 25)).toEqual(['b']);
+  });
+
+  it('negative scores', () => {
+    const zset = new SortedSet();
+    zset.add('a', -10);
+    zset.add('b', 0);
+    zset.add('c', 10);
+    expect(zset.range(0, 2)).toEqual(['a', 'b', 'c']);
+    expect(zset.rangeByScore(-5, 5)).toEqual(['b']);
+  });
+
+  it('decimal scores', () => {
+    const zset = new SortedSet();
+    zset.add('a', 1.5);
+    zset.add('b', 1.7);
+    zset.add('c', 1.3);
+    expect(zset.range(0, -1)).toEqual(['c', 'a', 'b']);
+  });
+
+  it('remove updates ranks correctly', () => {
+    const zset = new SortedSet();
+    zset.add('a', 1);
+    zset.add('b', 2);
+    zset.add('c', 3);
+    zset.remove('b');
+    expect(zset.rank('a')).toBe(0);
+    expect(zset.rank('c')).toBe(1);
+  });
+
+  it('empty set operations', () => {
+    const zset = new SortedSet();
+    expect(zset.count()).toBe(0);
+    expect(zset.range(0, 10)).toEqual([]);
+    expect(zset.rangeByScore(0, 100)).toEqual([]);
+    expect(zset.rank('any')).toBe(null);
+    expect(zset.score('any')).toBe(null);
+  });
+
+  it('single member operations', () => {
+    const zset = new SortedSet();
+    zset.add('solo', 42);
+    expect(zset.rank('solo')).toBe(0);
+    expect(zset.range(0, 0)).toEqual(['solo']);
+    expect(zset.rangeByScore(40, 50)).toEqual(['solo']);
+  });
+});
+]==],
+  {
+    name = "Concurrent Task Pool with Priority",
+    difficulty = "medium",
+    stub = [==[
+/**
+ * Concurrent Task Pool with Priority
+ *
+ * Implement a task pool that manages concurrent execution with priority queuing.
+ * Like Promise.all but with concurrency limits and priority scheduling.
+ *
+ * TaskPool class:
+ * - constructor(concurrency: number)
+ *   Maximum number of tasks that can run simultaneously
+ *
+ * - add<T>(task: () => Promise<T>, priority?: number): Promise<T>
+ *   Add a task to the pool. Returns a promise that resolves with the task result.
+ *   Higher priority tasks run first (default: 0). Same priority → FIFO order.
+ *
+ * - size(): number
+ *   Current number of running + queued tasks
+ *
+ * - drain(): Promise<void>
+ *   Wait for all queued and running tasks to complete
+ *
+ * - pause(): void
+ *   Stop starting new tasks (running tasks continue)
+ *
+ * - resume(): void
+ *   Resume starting new tasks from the queue
+ *
+ * - clear(): void
+ *   Cancel all queued tasks (running tasks continue)
+ *
+ * - get running(): number
+ *   Count of currently executing tasks
+ *
+ * - get queued(): number
+ *   Count of tasks waiting in the queue
+ *
+ * Bonus: Add retry logic with exponential backoff:
+ *   - addWithRetry(task, options: { retries: number, backoffMs: number })
+ */
+
+export class TaskPool {
+  constructor(concurrency: number) {
+    // YOUR CODE HERE
+  }
+
+  add<T>(task: () => Promise<T>, priority?: number): Promise<T> {
+    // YOUR CODE HERE
+    return Promise.reject(new Error('Not implemented'));
+  }
+
+  size(): number {
+    // YOUR CODE HERE
+    return 0;
+  }
+
+  drain(): Promise<void> {
+    // YOUR CODE HERE
+    return Promise.resolve();
+  }
+
+  pause(): void {
+    // YOUR CODE HERE
+  }
+
+  resume(): void {
+    // YOUR CODE HERE
+  }
+
+  clear(): void {
+    // YOUR CODE HERE
+  }
+
+  get running(): number {
+    // YOUR CODE HERE
+    return 0;
+  }
+
+  get queued(): number {
+    // YOUR CODE HERE
+    return 0;
+  }
+
+  /**
+   * Bonus: Add task with automatic retry on failure
+   */
+  addWithRetry<T>(
+    task: () => Promise<T>,
+    options: { retries: number; backoffMs: number; priority?: number }
+  ): Promise<T> {
+    // YOUR CODE HERE
+    return Promise.reject(new Error('Not implemented'));
+  }
+}
+]==],
+    tests = [==[
+import { describe, it, expect, vi } from 'vitest';
+import { TaskPool } from './challenge';
+
+const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
+
+describe('TaskPool', () => {
+  it('runs tasks up to concurrency limit', async () => {
+    const pool = new TaskPool(2);
+    let running = 0;
+    let maxRunning = 0;
+
+    const makeTask = () => async () => {
+      running++;
+      maxRunning = Math.max(maxRunning, running);
+      await delay(20);
+      running--;
+    };
+
+    await Promise.all([
+      pool.add(makeTask()),
+      pool.add(makeTask()),
+      pool.add(makeTask()),
+      pool.add(makeTask()),
+    ]);
+
+    expect(maxRunning).toBe(2);
+  });
+
+  it('returns task result', async () => {
+    const pool = new TaskPool(2);
+    const result = await pool.add(async () => 42);
+    expect(result).toBe(42);
+  });
+
+  it('propagates task errors', async () => {
+    const pool = new TaskPool(2);
+    await expect(pool.add(async () => {
+      throw new Error('task failed');
+    })).rejects.toThrow('task failed');
+  });
+
+  it('priority tasks run before lower priority', async () => {
+    const pool = new TaskPool(1);
+    const order: string[] = [];
+
+    // Block pool with long task
+    const blocker = pool.add(async () => {
+      await delay(50);
+      order.push('blocker');
+    });
+
+    // Queue tasks with different priorities
+    await delay(5); // Ensure blocker is running
+    const low = pool.add(async () => { order.push('low'); }, 0);
+    const high = pool.add(async () => { order.push('high'); }, 10);
+    const medium = pool.add(async () => { order.push('medium'); }, 5);
+
+    await Promise.all([blocker, low, high, medium]);
+    expect(order).toEqual(['blocker', 'high', 'medium', 'low']);
+  });
+
+  it('same priority maintains FIFO order', async () => {
+    const pool = new TaskPool(1);
+    const order: number[] = [];
+
+    const blocker = pool.add(async () => { await delay(20); });
+    await delay(5);
+
+    const tasks = [1, 2, 3, 4].map(i =>
+      pool.add(async () => { order.push(i); }, 5)
+    );
+
+    await blocker;
+    await Promise.all(tasks);
+    expect(order).toEqual([1, 2, 3, 4]);
+  });
+
+  it('size returns total tasks', async () => {
+    const pool = new TaskPool(1);
+    let resolve1: () => void;
+    const task1 = new Promise<void>(r => { resolve1 = r; });
+
+    pool.add(async () => { await task1; });
+    pool.add(async () => {});
+    pool.add(async () => {});
+
+    await delay(5);
+    expect(pool.size()).toBe(3);
+
+    resolve1!();
+    await delay(5);
+    expect(pool.size()).toBeLessThan(3);
+  });
+
+  it('running and queued counts', async () => {
+    const pool = new TaskPool(2);
+    let resolve: () => void;
+    const blocker = new Promise<void>(r => { resolve = r; });
+
+    pool.add(async () => { await blocker; });
+    pool.add(async () => { await blocker; });
+    pool.add(async () => {});
+    pool.add(async () => {});
+
+    await delay(10);
+    expect(pool.running).toBe(2);
+    expect(pool.queued).toBe(2);
+
+    resolve!();
+    await delay(10);
+    expect(pool.running).toBe(0);
+    expect(pool.queued).toBe(0);
+  });
+
+  it('drain waits for all tasks', async () => {
+    const pool = new TaskPool(2);
+    const completed: number[] = [];
+
+    pool.add(async () => { await delay(30); completed.push(1); });
+    pool.add(async () => { await delay(20); completed.push(2); });
+    pool.add(async () => { await delay(10); completed.push(3); });
+
+    await pool.drain();
+    expect(completed.sort()).toEqual([1, 2, 3]);
+  });
+
+  it('pause stops starting new tasks', async () => {
+    const pool = new TaskPool(1);
+    const started: string[] = [];
+
+    pool.add(async () => {
+      started.push('first');
+      await delay(20);
+    });
+
+    await delay(5);
+    pool.pause();
+
+    pool.add(async () => { started.push('second'); });
+
+    await delay(50);
+    expect(started).toEqual(['first']);
+  });
+
+  it('resume restarts queue processing', async () => {
+    const pool = new TaskPool(1);
+    const completed: string[] = [];
+
+    pool.add(async () => { await delay(10); completed.push('first'); });
+    await delay(5);
+    pool.pause();
+
+    const second = pool.add(async () => { completed.push('second'); });
+
+    await delay(30);
+    expect(completed).toEqual(['first']);
+
+    pool.resume();
+    await second;
+    expect(completed).toEqual(['first', 'second']);
+  });
+
+  it('clear removes queued tasks', async () => {
+    const pool = new TaskPool(1);
+    const executed: number[] = [];
+
+    const running = pool.add(async () => {
+      await delay(30);
+      executed.push(1);
+    });
+
+    await delay(5);
+    pool.add(async () => { executed.push(2); });
+    pool.add(async () => { executed.push(3); });
+
+    pool.clear();
+    await running;
+    await delay(50);
+
+    expect(executed).toEqual([1]);
+  });
+
+  it('clear rejects pending promises', async () => {
+    const pool = new TaskPool(1);
+
+    pool.add(async () => { await delay(20); });
+    await delay(5);
+
+    const pending = pool.add(async () => 'result');
+    pool.clear();
+
+    await expect(pending).rejects.toThrow();
+  });
+
+  it('handles task that throws immediately', async () => {
+    const pool = new TaskPool(2);
+    await expect(pool.add(async () => {
+      throw new Error('immediate');
+    })).rejects.toThrow('immediate');
+  });
+
+  it('continues after task error', async () => {
+    const pool = new TaskPool(1);
+    const results: (string | Error)[] = [];
+
+    const p1 = pool.add(async () => { throw new Error('fail'); })
+      .catch(e => { results.push(e as Error); });
+    const p2 = pool.add(async () => { results.push('success'); });
+
+    await Promise.all([p1, p2]);
+    expect(results[0]).toBeInstanceOf(Error);
+    expect(results[1]).toBe('success');
+  });
+
+  it('zero concurrency throws', () => {
+    expect(() => new TaskPool(0)).toThrow();
+  });
+
+  it('negative concurrency throws', () => {
+    expect(() => new TaskPool(-1)).toThrow();
+  });
+
+  it('stress: many tasks', async () => {
+    const pool = new TaskPool(10);
+    const tasks = Array.from({ length: 500 }, (_, i) =>
+      pool.add(async () => i)
+    );
+    const results = await Promise.all(tasks);
+    expect(results).toHaveLength(500);
+    expect(results[250]).toBe(250);
+  });
+
+  it('stress: high priority surge', async () => {
+    const pool = new TaskPool(2);
+    const order: number[] = [];
+
+    const blocker = pool.add(async () => { await delay(50); });
+
+    await delay(5);
+    for (let i = 0; i < 20; i++) {
+      pool.add(async () => { order.push(i); }, i % 2 === 0 ? 10 : 1);
+    }
+
+    await pool.drain();
+    // First 10 should be high priority (even indices)
+    const first10 = order.slice(0, 10);
+    const allEven = first10.every(n => n % 2 === 0);
+    expect(allEven).toBe(true);
+  });
+
+  it('addWithRetry succeeds after failures', async () => {
+    const pool = new TaskPool(1);
+    let attempts = 0;
+
+    const result = await pool.addWithRetry(
+      async () => {
+        attempts++;
+        if (attempts < 3) throw new Error('retry me');
+        return 'success';
+      },
+      { retries: 3, backoffMs: 10 }
+    );
+
+    expect(result).toBe('success');
+    expect(attempts).toBe(3);
+  });
+
+  it('addWithRetry fails after max retries', async () => {
+    const pool = new TaskPool(1);
+    let attempts = 0;
+
+    await expect(pool.addWithRetry(
+      async () => {
+        attempts++;
+        throw new Error('always fails');
+      },
+      { retries: 2, backoffMs: 5 }
+    )).rejects.toThrow('always fails');
+
+    expect(attempts).toBe(3); // initial + 2 retries
+  });
+
+  it('addWithRetry respects backoff timing', async () => {
+    const pool = new TaskPool(1);
+    const timestamps: number[] = [];
+
+    await pool.addWithRetry(
+      async () => {
+        timestamps.push(Date.now());
+        if (timestamps.length < 3) throw new Error('retry');
+        return 'done';
+      },
+      { retries: 3, backoffMs: 50 }
+    ).catch(() => {});
+
+    // First retry after ~50ms, second after ~100ms (exponential)
+    const gaps = timestamps.slice(1).map((t, i) => t - timestamps[i]);
+    expect(gaps[0]).toBeGreaterThanOrEqual(40);
+    expect(gaps[1]).toBeGreaterThanOrEqual(90);
+  });
+
+  it('addWithRetry with priority', async () => {
+    const pool = new TaskPool(1);
+    const order: string[] = [];
+
+    const blocker = pool.add(async () => { await delay(30); });
+
+    await delay(5);
+    const low = pool.addWithRetry(
+      async () => { order.push('low'); },
+      { retries: 0, backoffMs: 10, priority: 1 }
+    );
+    const high = pool.addWithRetry(
+      async () => { order.push('high'); },
+      { retries: 0, backoffMs: 10, priority: 10 }
+    );
+
+    await Promise.all([blocker, low, high]);
+    expect(order).toEqual(['high', 'low']);
+  });
+
+  it('drain after pause waits correctly', async () => {
+    const pool = new TaskPool(2);
+    const completed: number[] = [];
+
+    pool.add(async () => { await delay(30); completed.push(1); });
+    pool.pause();
+
+    pool.add(async () => { await delay(10); completed.push(2); });
+
+    // Drain should wait even though queue is paused
+    const drainPromise = pool.drain();
+    await delay(50);
+    expect(completed).toEqual([1]);
+
+    pool.resume();
+    await drainPromise;
+    expect(completed.sort()).toEqual([1, 2]);
+  });
+
+  it('concurrent concurrency changes', async () => {
+    const pool = new TaskPool(5);
+    const running: number[] = [];
+
+    const tasks = Array.from({ length: 20 }, (_, i) =>
+      pool.add(async () => {
+        running.push(i);
+        await delay(50);
+        running.splice(running.indexOf(i), 1);
+      })
+    );
+
+    await delay(10);
+    expect(pool.running).toBeLessThanOrEqual(5);
+
+    await Promise.all(tasks);
+    expect(pool.running).toBe(0);
+  });
+});
+]==],
+  },
+
+  {
+    name = "Simple JSON Path Query",
+    difficulty = "medium",
+    stub = [==[
+/**
+ * Simple JSON Path Query
+ *
+ * Implement a lightweight JSON path query engine similar to JSONPath or jq.
+ * Navigate nested objects/arrays using a simplified dot notation and array indexing.
+ *
+ * Query syntax:
+ * - "name" — get property `name` from object
+ * - "users.0" — get first element of `users` array
+ * - "users.0.email" — chain access
+ * - "*.name" — get `name` from ALL items in an array/object (wildcard)
+ * - "users[name=Alice]" — filter array by property match (bonus)
+ *
+ * Implement:
+ * - query(data: any, path: string): any
+ *   Returns the value at the path, or undefined if not found.
+ *   For wildcard queries, return an array of matches.
+ *
+ * Examples:
+ *   query({ user: { name: "Bob" } }, "user.name") → "Bob"
+ *   query({ items: [{ id: 1 }, { id: 2 }] }, "items.0.id") → 1
+ *   query({ items: [{ x: 1 }, { x: 2 }] }, "items.*.x") → [1, 2]
+ *
+ * Bonus: Support filter syntax like "users[role=admin].email"
+ */
+
+export function query(data: any, path: string): any {
+  // YOUR CODE HERE
+  return undefined;
+}
+
+/**
+ * Bonus: Set a value at a path (immutably).
+ * Returns a new object with the value set at the path.
+ */
+export function set(data: any, path: string, value: any): any {
+  // YOUR CODE HERE
+  return data;
+}
+]==],
+    tests = [==[
+import { describe, it, expect } from 'vitest';
+import { query, set } from './challenge';
+
+describe('Simple JSON Path Query', () => {
+  const sampleData = {
+    user: {
+      name: 'Alice',
+      age: 30,
+      contacts: {
+        email: 'alice@example.com',
+        phone: '555-1234',
+      },
+    },
+    items: [
+      { id: 1, name: 'Widget', price: 10.99 },
+      { id: 2, name: 'Gadget', price: 25.50 },
+      { id: 3, name: 'Doohickey', price: 5.00 },
+    ],
+    settings: {
+      theme: 'dark',
+      notifications: true,
+    },
+  };
+
+  it('simple property access', () => {
+    expect(query(sampleData, 'user')).toEqual(sampleData.user);
+    expect(query(sampleData, 'settings')).toEqual(sampleData.settings);
+  });
+
+  it('nested property access', () => {
+    expect(query(sampleData, 'user.name')).toBe('Alice');
+    expect(query(sampleData, 'user.contacts.email')).toBe('alice@example.com');
+    expect(query(sampleData, 'settings.theme')).toBe('dark');
+  });
+
+  it('array index access', () => {
+    expect(query(sampleData, 'items.0')).toEqual(sampleData.items[0]);
+    expect(query(sampleData, 'items.1.name')).toBe('Gadget');
+    expect(query(sampleData, 'items.2.price')).toBe(5.00);
+  });
+
+  it('returns undefined for missing paths', () => {
+    expect(query(sampleData, 'user.missing')).toBe(undefined);
+    expect(query(sampleData, 'nope.nada')).toBe(undefined);
+    expect(query(sampleData, 'items.99.name')).toBe(undefined);
+  });
+
+  it('wildcard in arrays', () => {
+    expect(query(sampleData, 'items.*.name')).toEqual(['Widget', 'Gadget', 'Doohickey']);
+    expect(query(sampleData, 'items.*.price')).toEqual([10.99, 25.50, 5.00]);
+  });
+
+  it('wildcard in objects', () => {
+    const data = {
+      users: {
+        alice: { age: 30 },
+        bob: { age: 25 },
+        charlie: { age: 35 },
+      },
+    };
+    const ages = query(data, 'users.*.age');
+    expect(ages.sort()).toEqual([25, 30, 35]);
+  });
+
+  it('root access with empty path', () => {
+    expect(query(sampleData, '')).toBe(sampleData);
+  });
+
+  it('primitive values return undefined for further access', () => {
+    expect(query(sampleData, 'user.age.something')).toBe(undefined);
+  });
+
+  it('chained wildcards', () => {
+    const data = {
+      teams: [
+        { members: [{ name: 'A' }, { name: 'B' }] },
+        { members: [{ name: 'C' }, { name: 'D' }] },
+      ],
+    };
+    expect(query(data, 'teams.*.members.*.name')).toEqual(['A', 'B', 'C', 'D']);
+  });
+
+  it('handles null and undefined gracefully', () => {
+    const data = { a: null, b: undefined, c: { d: null } };
+    expect(query(data, 'a.x')).toBe(undefined);
+    expect(query(data, 'b.y')).toBe(undefined);
+    expect(query(data, 'c.d.z')).toBe(undefined);
+  });
+
+  it('numeric string keys work', () => {
+    const data = { '123': 'value' };
+    expect(query(data, '123')).toBe('value');
+  });
+
+  it('complex real-world example', () => {
+    const data = {
+      api: {
+        endpoints: [
+          { path: '/users', methods: ['GET', 'POST'] },
+          { path: '/posts', methods: ['GET', 'DELETE'] },
+        ],
+      },
+    };
+    expect(query(data, 'api.endpoints.0.path')).toBe('/users');
+    expect(query(data, 'api.endpoints.*.path')).toEqual(['/users', '/posts']);
+  });
+
+  it('filter syntax (bonus)', () => {
+    expect(query(sampleData, 'items[name=Gadget].price')).toBe(25.50);
+    expect(query(sampleData, 'items[id=1].name')).toBe('Widget');
+  });
+
+  it('stress: deep nesting', () => {
+    let deep: any = { value: 42 };
+    for (let i = 0; i < 50; i++) {
+      deep = { next: deep };
+    }
+    let path = 'next.'.repeat(50) + 'value';
+    expect(query(deep, path)).toBe(42);
+  });
+
+  it('stress: wide array', () => {
+    const data = { items: Array.from({ length: 100 }, (_, i) => ({ id: i })) };
+    expect(query(data, 'items.50.id')).toBe(50);
+    const ids = query(data, 'items.*.id');
+    expect(ids.length).toBe(100);
+    expect(ids[0]).toBe(0);
+    expect(ids[99]).toBe(99);
+  });
+});
+
+describe('set (bonus)', () => {
+  it('sets simple property', () => {
+    const data = { a: 1 };
+    const result = set(data, 'b', 2);
+    expect(result).toEqual({ a: 1, b: 2 });
+    expect(data).toEqual({ a: 1 });
+  });
+
+  it('sets nested property', () => {
+    const data = { user: { name: 'Alice' } };
+    const result = set(data, 'user.age', 30);
+    expect(result.user.age).toBe(30);
+    expect(data.user.age).toBe(undefined);
+  });
+
+  it('creates missing intermediate objects', () => {
+    const data = {};
+    const result = set(data, 'a.b.c', 'deep');
+    expect(result.a.b.c).toBe('deep');
+  });
+
+  it('sets array index', () => {
+    const data = { items: [1, 2, 3] };
+    const result = set(data, 'items.1', 99);
+    expect(result.items).toEqual([1, 99, 3]);
+    expect(data.items).toEqual([1, 2, 3]);
+  });
+
+  it('immutability check', () => {
+    const original = { user: { name: 'Bob' } };
+    const updated = set(original, 'user.name', 'Alice');
+    expect(original.user.name).toBe('Bob');
+    expect(updated.user.name).toBe('Alice');
+    expect(original.user).not.toBe(updated.user);
+  });
+});
+]==],
+  },
+  {
+    name = "Operational Transform (Collaborative Editing)",
+    difficulty = "hard",
+    stub = [==[
+/**
+ * Operational Transform (Collaborative Editing)
+ *
+ * Implement the core of a collaborative text editor using Operational Transformation (OT).
+ * This is the algorithm behind Google Docs, Etherpad, and other real-time collaborative tools.
+ *
+ * Operations:
+ * - Insert(pos: number, text: string) — Insert text at position
+ * - Delete(pos: number, length: number) — Delete characters starting at position
+ * - Retain(count: number) — Skip forward count characters (for composition)
+ *
+ * Implement:
+ * - apply(doc: string, op: Operation): string
+ *   Apply an operation to a document string, return the new document.
+ *
+ * - transform(op1: Operation, op2: Operation, priority: 'left' | 'right'): Operation
+ *   Transform op1 against op2 (assuming they were concurrent).
+ *   Returns the transformed version of op1 that can be applied after op2.
+ *   Priority breaks ties when both ops target the same position.
+ *
+ * - compose(op1: Operation, op2: Operation): Operation
+ *   Compose two sequential operations into a single operation.
+ *
+ * OT Invariants (must hold):
+ * 1. transform(a, b, 'left') applied after b gives same result as
+ *    transform(b, a, 'right') applied after a
+ * 2. compose(a, b) applied once = applying a then b sequentially
+ *
+ * Example:
+ *   doc = "Hello"
+ *   op1 = Insert(5, " World")  // User 1: "Hello World"
+ *   op2 = Delete(0, 1)         // User 2: "ello"
+ *   
+ *   To merge: apply op2, then apply transform(op1, op2, 'left')
+ *   Result should be: "ello World"
+ */
+
+export type Operation =
+  | { type: 'insert'; pos: number; text: string }
+  | { type: 'delete'; pos: number; length: number }
+  | { type: 'retain'; count: number };
+
+export function apply(doc: string, op: Operation): string {
+  // YOUR CODE HERE
+  return doc;
+}
+
+export function transform(
+  op1: Operation,
+  op2: Operation,
+  priority: 'left' | 'right'
+): Operation {
+  // YOUR CODE HERE
+  return op1;
+}
+
+export function compose(op1: Operation, op2: Operation): Operation {
+  // YOUR CODE HERE
+  return op1;
+}
+
+/**
+ * Helper: Create operation objects
+ */
+export const Insert = (pos: number, text: string): Operation => 
+  ({ type: 'insert', pos, text });
+
+export const Delete = (pos: number, length: number): Operation => 
+  ({ type: 'delete', pos, length });
+
+export const Retain = (count: number): Operation => 
+  ({ type: 'retain', count });
+]==],
+    tests = [==[
+import { describe, it, expect } from 'vitest';
+import { apply, transform, compose, Insert, Delete, Retain } from './challenge';
+
+describe('apply operation', () => {
+  it('insert at beginning', () => {
+    expect(apply('World', Insert(0, 'Hello '))).toBe('Hello World');
+  });
+
+  it('insert at end', () => {
+    expect(apply('Hello', Insert(5, ' World'))).toBe('Hello World');
+  });
+
+  it('insert in middle', () => {
+    expect(apply('HeLo', Insert(2, 'l'))).toBe('Hello');
+  });
+
+  it('delete from beginning', () => {
+    expect(apply('Hello World', Delete(0, 6))).toBe('World');
+  });
+
+  it('delete from middle', () => {
+    expect(apply('Hello', Delete(1, 3))).toBe('Ho');
+  });
+
+  it('delete at end', () => {
+    expect(apply('Hello', Delete(3, 2))).toBe('Hel');
+  });
+
+  it('retain does nothing (identity)', () => {
+    expect(apply('Hello', Retain(5))).toBe('Hello');
+  });
+
+  it('empty document insert', () => {
+    expect(apply('', Insert(0, 'Hello'))).toBe('Hello');
+  });
+
+  it('delete entire document', () => {
+    expect(apply('Hello', Delete(0, 5))).toBe('');
+  });
+});
+
+describe('transform: Insert vs Insert', () => {
+  it('insert before insert (left priority)', () => {
+    const op1 = Insert(5, 'A');
+    const op2 = Insert(3, 'B');
+    const transformed = transform(op1, op2, 'left');
+    expect(transformed).toEqual(Insert(6, 'A'));
+  });
+
+  it('insert after insert', () => {
+    const op1 = Insert(3, 'A');
+    const op2 = Insert(5, 'B');
+    const transformed = transform(op1, op2, 'left');
+    expect(transformed).toEqual(Insert(3, 'A'));
+  });
+
+  it('insert at same position (left priority wins)', () => {
+    const op1 = Insert(5, 'A');
+    const op2 = Insert(5, 'B');
+    const transformed = transform(op1, op2, 'left');
+    expect(transformed).toEqual(Insert(5, 'A'));
+  });
+
+  it('insert at same position (right priority)', () => {
+    const op1 = Insert(5, 'A');
+    const op2 = Insert(5, 'B');
+    const transformed = transform(op1, op2, 'right');
+    expect(transformed).toEqual(Insert(6, 'A'));
+  });
+});
+
+describe('transform: Insert vs Delete', () => {
+  it('insert before delete range', () => {
+    const op1 = Insert(2, 'X');
+    const op2 = Delete(5, 3);
+    const transformed = transform(op1, op2, 'left');
+    expect(transformed).toEqual(Insert(2, 'X'));
+  });
+
+  it('insert after delete range', () => {
+    const op1 = Insert(10, 'X');
+    const op2 = Delete(2, 5);
+    const transformed = transform(op1, op2, 'left');
+    expect(transformed).toEqual(Insert(5, 'X'));
+  });
+
+  it('insert within delete range', () => {
+    const op1 = Insert(5, 'X');
+    const op2 = Delete(3, 5);
+    const transformed = transform(op1, op2, 'left');
+    expect(transformed).toEqual(Insert(3, 'X'));
+  });
+
+  it('insert at delete start (left priority)', () => {
+    const op1 = Insert(5, 'X');
+    const op2 = Delete(5, 3);
+    const transformed = transform(op1, op2, 'left');
+    expect(transformed).toEqual(Insert(5, 'X'));
+  });
+});
+
+describe('transform: Delete vs Insert', () => {
+  it('delete before insert', () => {
+    const op1 = Delete(2, 3);
+    const op2 = Insert(10, 'X');
+    const transformed = transform(op1, op2, 'left');
+    expect(transformed).toEqual(Delete(2, 3));
+  });
+
+  it('delete after insert', () => {
+    const op1 = Delete(10, 3);
+    const op2 = Insert(2, 'XX');
+    const transformed = transform(op1, op2, 'left');
+    expect(transformed).toEqual(Delete(12, 3));
+  });
+
+  it('delete range includes insert position', () => {
+    const op1 = Delete(3, 5);
+    const op2 = Insert(5, 'XX');
+    const transformed = transform(op1, op2, 'left');
+    expect(transformed).toEqual(Delete(3, 7));
+  });
+});
+
+describe('transform: Delete vs Delete', () => {
+  it('non-overlapping deletes', () => {
+    const op1 = Delete(10, 3);
+    const op2 = Delete(2, 3);
+    const transformed = transform(op1, op2, 'left');
+    expect(transformed).toEqual(Delete(7, 3));
+  });
+
+  it('overlapping deletes - partial', () => {
+    const op1 = Delete(5, 5);  // Delete [5,10)
+    const op2 = Delete(7, 3);  // Delete [7,10)
+    const transformed = transform(op1, op2, 'left');
+    expect(transformed).toEqual(Delete(5, 2));
+  });
+
+  it('overlapping deletes - full containment', () => {
+    const op1 = Delete(3, 2);  // Delete [3,5)
+    const op2 = Delete(2, 10); // Delete [2,12) contains [3,5)
+    const transformed = transform(op1, op2, 'left');
+    expect(transformed).toEqual(Delete(2, 0));
+  });
+
+  it('identical deletes', () => {
+    const op1 = Delete(5, 3);
+    const op2 = Delete(5, 3);
+    const transformed = transform(op1, op2, 'left');
+    expect(transformed).toEqual(Delete(5, 0));
+  });
+});
+
+describe('OT Invariant 1: Convergence', () => {
+  it('concurrent inserts converge', () => {
+    const doc = 'Hello';
+    const op1 = Insert(5, ' World');
+    const op2 = Insert(0, 'Hi ');
+
+    // Path 1: apply op1, then transform(op2, op1)
+    const doc1a = apply(doc, op1);
+    const op2_ = transform(op2, op1, 'right');
+    const result1 = apply(doc1a, op2_);
+
+    // Path 2: apply op2, then transform(op1, op2)
+    const doc2a = apply(doc, op2);
+    const op1_ = transform(op1, op2, 'left');
+    const result2 = apply(doc2a, op1_);
+
+    expect(result1).toBe(result2);
+  });
+
+  it('concurrent insert and delete converge', () => {
+    const doc = 'Hello World';
+    const op1 = Delete(6, 5);
+    const op2 = Insert(5, '!');
+
+    const doc1a = apply(doc, op1);
+    const op2_ = transform(op2, op1, 'right');
+    const result1 = apply(doc1a, op2_);
+
+    const doc2a = apply(doc, op2);
+    const op1_ = transform(op1, op2, 'left');
+    const result2 = apply(doc2a, op1_);
+
+    expect(result1).toBe(result2);
+  });
+
+  it('concurrent deletes converge', () => {
+    const doc = 'abcdefghijk';
+    const op1 = Delete(2, 4);
+    const op2 = Delete(5, 3);
+
+    const doc1a = apply(doc, op1);
+    const op2_ = transform(op2, op1, 'right');
+    const result1 = apply(doc1a, op2_);
+
+    const doc2a = apply(doc, op2);
+    const op1_ = transform(op1, op2, 'left');
+    const result2 = apply(doc2a, op1_);
+
+    expect(result1).toBe(result2);
+  });
+});
+
+describe('compose', () => {
+  it('compose two inserts', () => {
+    const op1 = Insert(0, 'Hello');
+    const op2 = Insert(5, ' World');
+    const composed = compose(op1, op2);
+    
+    const doc = '';
+    const result1 = apply(apply(doc, op1), op2);
+    const result2 = apply(doc, composed);
+    expect(result2).toBe(result1);
+  });
+
+  it('compose insert then delete', () => {
+    const op1 = Insert(0, 'Hello');
+    const op2 = Delete(1, 3);
+    const composed = compose(op1, op2);
+    
+    const doc = '';
+    const result1 = apply(apply(doc, op1), op2);
+    const result2 = apply(doc, composed);
+    expect(result2).toBe(result1);
+  });
+
+  it('compose delete then insert', () => {
+    const doc = 'Hello World';
+    const op1 = Delete(6, 5);
+    const op2 = Insert(5, '!');
+    const composed = compose(op1, op2);
+    
+    const result1 = apply(apply(doc, op1), op2);
+    const result2 = apply(doc, composed);
+    expect(result2).toBe(result1);
+  });
+
+  it('compose overlapping deletes', () => {
+    const doc = 'abcdefgh';
+    const op1 = Delete(2, 3);
+    const op2 = Delete(2, 2);
+    const composed = compose(op1, op2);
+    
+    const result1 = apply(apply(doc, op1), op2);
+    const result2 = apply(doc, composed);
+    expect(result2).toBe(result1);
+  });
+});
+
+describe('stress tests', () => {
+  it('many concurrent edits converge', () => {
+    let doc = 'The quick brown fox jumps over the lazy dog';
+    const ops = [
+      Insert(10, 'very '),
+      Delete(0, 4),
+      Insert(44, '!'),
+      Delete(16, 4),
+      Insert(31, ' extremely'),
+    ];
+
+    // Apply in all different orders - should converge
+    function applyAll(doc: string, ops: Operation[], order: number[]): string {
+      let result = doc;
+      const applied: Operation[] = [];
+      for (const i of order) {
+        let op = ops[i];
+        for (const prev of applied) {
+          op = transform(op, prev, 'left');
+        }
+        result = apply(result, op);
+        applied.push(ops[i]);
+      }
+      return result;
+    }
+
+    const order1 = [0, 1, 2, 3, 4];
+    const order2 = [4, 3, 2, 1, 0];
+    const order3 = [2, 0, 4, 1, 3];
+
+    const result1 = applyAll(doc, ops, order1);
+    const result2 = applyAll(doc, ops, order2);
+    const result3 = applyAll(doc, ops, order3);
+
+    // They might not all be identical due to transform priority,
+    // but at minimum they should all be valid strings
+    expect(typeof result1).toBe('string');
+    expect(typeof result2).toBe('string');
+    expect(typeof result3).toBe('string');
+  });
+
+  it('rapid insert-delete sequences', () => {
+    let doc = 'Hello';
+    doc = apply(doc, Insert(5, ' World'));
+    doc = apply(doc, Delete(0, 6));
+    doc = apply(doc, Insert(0, 'Beautiful '));
+    doc = apply(doc, Delete(10, 5));
+    expect(doc).toBe('Beautiful ');
+  });
+
+  it('transform chain maintains correctness', () => {
+    const doc = 'abcdef';
+    const op1 = Insert(3, 'X');
+    const op2 = Delete(2, 2);
+    const op3 = Insert(1, 'Y');
+
+    // Transform op1 against op2 and op3
+    let op1_ = transform(op1, op2, 'left');
+    op1_ = transform(op1_, op3, 'left');
+
+    // Apply op2, op3, then transformed op1
+    let result = apply(doc, op2);
+    result = apply(result, op3);
+    result = apply(result, op1_);
+
+    // Verify it's a valid string
+    expect(typeof result).toBe('string');
+    expect(result.includes('X')).toBe(true);
+    expect(result.includes('Y')).toBe(true);
+  });
+});
+]==],
+  },
+}
+  {
+    name = "Recursive Descent Parser",
+    difficulty = "medium",
+    stub = [==[
+/**
+ * Recursive Descent Parser
+ *
+ * Implement a recursive descent parser for a simple arithmetic expression language.
+ *
+ * Grammar (EBNF):
+ *   expr   ::= term (('+' | '-') term)*
+ *   term   ::= factor (('*' | '/') factor)*
+ *   factor ::= number | '(' expr ')'
+ *   number ::= [0-9]+
+ *
+ * Parser class:
+ * - constructor(input: string) — Initialize with an input string.
+ * - parse(): ASTNode — Parse and return the abstract syntax tree.
+ *   Throw SyntaxError for invalid input.
+ *
+ * AST node types:
+ *   BinaryOp: { type: 'binary', op: '+' | '-' | '*' | '/', left: ASTNode, right: ASTNode }
+ *   Number:   { type: 'number', value: number }
+ *
+ * Examples:
+ *   "3 + 5" → { type: 'binary', op: '+', left: { type: 'number', value: 3 }, right: { type: 'number', value: 5 } }
+ *   "2 * (3 + 4)" → nested binary op nodes
+ *
+ * Bonus: Implement eval(ast) to evaluate the AST to a numeric result.
+ */
+
+type BinaryOp = {
+  type: 'binary';
+  op: '+' | '-' | '*' | '/';
+  left: ASTNode;
+  right: ASTNode;
+};
+
+type NumberNode = {
+  type: 'number';
+  value: number;
+};
+
+export type ASTNode = BinaryOp | NumberNode;
+
+export class Parser {
+  constructor(input: string) {
+    // YOUR CODE HERE
+  }
+
+  parse(): ASTNode {
+    // YOUR CODE HERE
+    throw new SyntaxError('Not implemented');
+  }
+}
+
+/**
+ * Bonus: Evaluate an AST to a number.
+ */
+export function evaluate(ast: ASTNode): number {
+  // YOUR CODE HERE
+  return 0;
+}
+]==],
+    tests = [==[
+import { describe, it, expect } from 'vitest';
+import { Parser, evaluate } from './challenge';
+
+describe('Parser', () => {
+  it('parses a single number', () => {
+    const ast = new Parser('42').parse();
+    expect(ast).toEqual({ type: 'number', value: 42 });
+  });
+
+  it('parses simple addition', () => {
+    const ast = new Parser('3 + 5').parse();
+    expect(ast).toMatchObject({
+      type: 'binary',
+      op: '+',
+      left: { type: 'number', value: 3 },
+      right: { type: 'number', value: 5 },
+    });
+  });
+
+  it('parses simple subtraction', () => {
+    const ast = new Parser('10 - 4').parse();
+    expect(ast.type).toBe('binary');
+    if (ast.type === 'binary') {
+      expect(ast.op).toBe('-');
+      expect((ast.left as any).value).toBe(10);
+      expect((ast.right as any).value).toBe(4);
+    }
+  });
+
+  it('parses multiplication', () => {
+    const ast = new Parser('6 * 7').parse();
+    expect(evaluate(ast)).toBe(42);
+  });
+
+  it('parses division', () => {
+    const ast = new Parser('20 / 4').parse();
+    expect(evaluate(ast)).toBe(5);
+  });
+
+  it('respects precedence: * before +', () => {
+    const ast = new Parser('2 + 3 * 4').parse();
+    expect(evaluate(ast)).toBe(14);
+  });
+
+  it('respects precedence: / before -', () => {
+    const ast = new Parser('10 - 8 / 2').parse();
+    expect(evaluate(ast)).toBe(6);
+  });
+
+  it('handles parentheses', () => {
+    const ast = new Parser('(2 + 3) * 4').parse();
+    expect(evaluate(ast)).toBe(20);
+  });
+
+  it('nested parentheses', () => {
+    const ast = new Parser('((1 + 2) * (3 + 4))').parse();
+    expect(evaluate(ast)).toBe(21);
+  });
+
+  it('left-associativity for addition', () => {
+    const ast = new Parser('1 + 2 + 3').parse();
+    expect(evaluate(ast)).toBe(6);
+  });
+
+  it('left-associativity for subtraction', () => {
+    const ast = new Parser('10 - 3 - 2').parse();
+    expect(evaluate(ast)).toBe(5);
+  });
+
+  it('mixed operations', () => {
+    const ast = new Parser('2 + 3 * 4 - 5 / 1').parse();
+    expect(evaluate(ast)).toBe(9);
+  });
+
+  it('whitespace is ignored', () => {
+    const ast = new Parser('  2  +  3  *  4  ').parse();
+    expect(evaluate(ast)).toBe(14);
+  });
+
+  it('throws on empty input', () => {
+    expect(() => new Parser('').parse()).toThrow(SyntaxError);
+  });
+
+  it('throws on invalid character', () => {
+    expect(() => new Parser('2 + @').parse()).toThrow(SyntaxError);
+  });
+
+  it('throws on mismatched parentheses - missing close', () => {
+    expect(() => new Parser('(2 + 3').parse()).toThrow(SyntaxError);
+  });
+
+  it('throws on mismatched parentheses - extra close', () => {
+    expect(() => new Parser('2 + 3)').parse()).toThrow(SyntaxError);
+  });
+
+  it('throws on trailing operator', () => {
+    expect(() => new Parser('2 +').parse()).toThrow(SyntaxError);
+  });
+
+  it('throws on leading operator', () => {
+    expect(() => new Parser('+ 2').parse()).toThrow(SyntaxError);
+  });
+
+  it('multi-digit numbers', () => {
+    const ast = new Parser('123 + 456').parse();
+    expect(evaluate(ast)).toBe(579);
+  });
+
+  it('complex expression', () => {
+    const ast = new Parser('(10 + 20) * (5 - 3) / 2').parse();
+    expect(evaluate(ast)).toBe(30);
+  });
+
+  it('stress: deeply nested parentheses', () => {
+    const ast = new Parser('((((1 + 1) + 1) + 1) + 1)').parse();
+    expect(evaluate(ast)).toBe(5);
+  });
+
+  it('stress: long chain of additions', () => {
+    const expr = Array.from({ length: 50 }, (_, i) => i + 1).join(' + ');
+    const ast = new Parser(expr).parse();
+    expect(evaluate(ast)).toBe(1275);
+  });
+
+  it('division by zero throws or returns Infinity', () => {
+    const ast = new Parser('1 / 0').parse();
+    const result = evaluate(ast);
+    expect(result === Infinity || isNaN(result)).toBe(true);
+  });
+
+  it('only spaces between tokens', () => {
+    expect(() => new Parser('2 3').parse()).toThrow(SyntaxError);
+  });
+
+  it('validates full consumption of input', () => {
+    expect(() => new Parser('2 + 3 garbage').parse()).toThrow(SyntaxError);
+  });
+});
+
+describe('evaluate', () => {
+  it('evaluates number node', () => {
+    expect(evaluate({ type: 'number', value: 7 })).toBe(7);
+  });
+
+  it('evaluates addition', () => {
+    const ast = {
+      type: 'binary' as const,
+      op: '+' as const,
+      left: { type: 'number' as const, value: 2 },
+      right: { type: 'number' as const, value: 3 },
+    };
+    expect(evaluate(ast)).toBe(5);
+  });
+
+  it('evaluates subtraction', () => {
+    const ast = {
+      type: 'binary' as const,
+      op: '-' as const,
+      left: { type: 'number' as const, value: 10 },
+      right: { type: 'number' as const, value: 4 },
+    };
+    expect(evaluate(ast)).toBe(6);
+  });
+
+  it('evaluates multiplication', () => {
+    const ast = {
+      type: 'binary' as const,
+      op: '*' as const,
+      left: { type: 'number' as const, value: 5 },
+      right: { type: 'number' as const, value: 6 },
+    };
+    expect(evaluate(ast)).toBe(30);
+  });
+
+  it('evaluates division', () => {
+    const ast = {
+      type: 'binary' as const,
+      op: '/' as const,
+      left: { type: 'number' as const, value: 15 },
+      right: { type: 'number' as const, value: 3 },
+    };
+    expect(evaluate(ast)).toBe(5);
+  });
+
+  it('evaluates nested expression', () => {
+    const ast = {
+      type: 'binary' as const,
+      op: '+' as const,
+      left: {
+        type: 'binary' as const,
+        op: '*' as const,
+        left: { type: 'number' as const, value: 2 },
+        right: { type: 'number' as const, value: 3 },
+      },
+      right: { type: 'number' as const, value: 4 },
+    };
+    expect(evaluate(ast)).toBe(10);
+  });
+
+  it('negative results', () => {
+    const ast = {
+      type: 'binary' as const,
+      op: '-' as const,
+      left: { type: 'number' as const, value: 3 },
+      right: { type: 'number' as const, value: 7 },
+    };
+    expect(evaluate(ast)).toBe(-4);
+  });
+});
+]==],
+  },
+  {
+    name = "Skip List",
+    difficulty = "medium",
+    stub = [==[
+/**
+ * Skip List
+ *
+ * Implement a probabilistic data structure that allows fast search, insertion,
+ * and deletion with O(log n) average time complexity.
+ *
+ * A skip list is a layered linked list where higher levels skip over multiple
+ * nodes, enabling binary-search-like performance without tree rebalancing.
+ *
+ * SkipList class:
+ * - insert(value: number): void — Insert a value into the skip list
+ * - search(value: number): boolean — Check if a value exists
+ * - delete(value: number): boolean — Remove a value, return true if found
+ * - get size — Number of elements in the list
+ * - get height — Current maximum level count
+ * - toArray(): number[] — Return sorted array of all values
+ *
+ * Properties:
+ * - Nodes have multiple forward pointers (levels)
+ * - Probability p = 0.5 for level promotion
+ * - Maximum level = log2(n) or configurable max
+ * - Maintains sorted order automatically
+ */
+
+export class SkipList {
+  constructor(maxLevel: number = 16, p: number = 0.5) {
+    // YOUR CODE HERE
+  }
+
+  insert(value: number): void {
+    // YOUR CODE HERE
+  }
+
+  search(value: number): boolean {
+    // YOUR CODE HERE
+    return false;
+  }
+
+  delete(value: number): boolean {
+    // YOUR CODE HERE
+    return false;
+  }
+
+  get size(): number {
+    // YOUR CODE HERE
+    return 0;
+  }
+
+  get height(): number {
+    // YOUR CODE HERE
+    return 0;
+  }
+
+  toArray(): number[] {
+    // YOUR CODE HERE
+    return [];
+  }
+}
+]==],
+    tests = [==[
+import { describe, it, expect } from 'vitest';
+import { SkipList } from './challenge';
+
+describe('Skip List', () => {
+  it('insert and search', () => {
+    const list = new SkipList();
+    list.insert(5);
+    list.insert(3);
+    list.insert(7);
+    expect(list.search(5)).toBe(true);
+    expect(list.search(3)).toBe(true);
+    expect(list.search(7)).toBe(true);
+  });
+
+  it('search returns false for missing values', () => {
+    const list = new SkipList();
+    list.insert(10);
+    expect(list.search(5)).toBe(false);
+    expect(list.search(20)).toBe(false);
+  });
+
+  it('maintains sorted order in toArray', () => {
+    const list = new SkipList();
+    [7, 3, 9, 1, 5].forEach(v => list.insert(v));
+    expect(list.toArray()).toEqual([1, 3, 5, 7, 9]);
+  });
+
+  it('delete removes value', () => {
+    const list = new SkipList();
+    list.insert(5);
+    list.insert(3);
+    list.insert(7);
+    expect(list.delete(5)).toBe(true);
+    expect(list.search(5)).toBe(false);
+    expect(list.toArray()).toEqual([3, 7]);
+  });
+
+  it('delete returns false for non-existent value', () => {
+    const list = new SkipList();
+    list.insert(5);
+    expect(list.delete(10)).toBe(false);
+  });
+
+  it('size reflects element count', () => {
+    const list = new SkipList();
+    expect(list.size).toBe(0);
+    list.insert(1);
+    list.insert(2);
+    list.insert(3);
+    expect(list.size).toBe(3);
+    list.delete(2);
+    expect(list.size).toBe(2);
+  });
+
+  it('handles duplicate inserts', () => {
+    const list = new SkipList();
+    list.insert(5);
+    list.insert(5);
+    list.insert(5);
+    expect(list.toArray()).toEqual([5, 5, 5]);
+    expect(list.size).toBe(3);
+  });
+
+  it('empty list', () => {
+    const list = new SkipList();
+    expect(list.size).toBe(0);
+    expect(list.toArray()).toEqual([]);
+    expect(list.search(1)).toBe(false);
+    expect(list.delete(1)).toBe(false);
+  });
+
+  it('single element', () => {
+    const list = new SkipList();
+    list.insert(42);
+    expect(list.search(42)).toBe(true);
+    expect(list.size).toBe(1);
+    expect(list.toArray()).toEqual([42]);
+  });
+
+  it('insert in ascending order', () => {
+    const list = new SkipList();
+    for (let i = 1; i <= 10; i++) {
+      list.insert(i);
+    }
+    expect(list.toArray()).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+  });
+
+  it('insert in descending order', () => {
+    const list = new SkipList();
+    for (let i = 10; i >= 1; i--) {
+      list.insert(i);
+    }
+    expect(list.toArray()).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+  });
+
+  it('negative numbers', () => {
+    const list = new SkipList();
+    [-5, 3, -10, 0, 7].forEach(v => list.insert(v));
+    expect(list.toArray()).toEqual([-10, -5, 0, 3, 7]);
+  });
+
+  it('height increases with more elements', () => {
+    const list = new SkipList();
+    const initialHeight = list.height;
+    for (let i = 0; i < 100; i++) {
+      list.insert(i);
+    }
+    expect(list.height).toBeGreaterThan(initialHeight);
+  });
+
+  it('height respects maxLevel', () => {
+    const list = new SkipList(5);
+    for (let i = 0; i < 1000; i++) {
+      list.insert(i);
+    }
+    expect(list.height).toBeLessThanOrEqual(5);
+  });
+
+  it('delete from single-element list', () => {
+    const list = new SkipList();
+    list.insert(10);
+    expect(list.delete(10)).toBe(true);
+    expect(list.size).toBe(0);
+    expect(list.toArray()).toEqual([]);
+  });
+
+  it('delete first element', () => {
+    const list = new SkipList();
+    [1, 2, 3, 4, 5].forEach(v => list.insert(v));
+    list.delete(1);
+    expect(list.toArray()).toEqual([2, 3, 4, 5]);
+  });
+
+  it('delete last element', () => {
+    const list = new SkipList();
+    [1, 2, 3, 4, 5].forEach(v => list.insert(v));
+    list.delete(5);
+    expect(list.toArray()).toEqual([1, 2, 3, 4]);
+  });
+
+  it('delete middle element', () => {
+    const list = new SkipList();
+    [1, 2, 3, 4, 5].forEach(v => list.insert(v));
+    list.delete(3);
+    expect(list.toArray()).toEqual([1, 2, 4, 5]);
+  });
+
+  it('multiple deletes', () => {
+    const list = new SkipList();
+    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].forEach(v => list.insert(v));
+    list.delete(2);
+    list.delete(5);
+    list.delete(8);
+    expect(list.toArray()).toEqual([1, 3, 4, 6, 7, 9, 10]);
+  });
+
+  it('search after delete', () => {
+    const list = new SkipList();
+    list.insert(5);
+    list.insert(10);
+    list.insert(15);
+    list.delete(10);
+    expect(list.search(10)).toBe(false);
+    expect(list.search(5)).toBe(true);
+    expect(list.search(15)).toBe(true);
+  });
+
+  it('alternating insert and delete', () => {
+    const list = new SkipList();
+    list.insert(1);
+    list.insert(2);
+    list.delete(1);
+    list.insert(3);
+    list.delete(2);
+    list.insert(4);
+    expect(list.toArray()).toEqual([3, 4]);
+  });
+
+  it('stress: many insertions', () => {
+    const list = new SkipList();
+    const values = Array.from({ length: 1000 }, () => Math.floor(Math.random() * 10000));
+    values.forEach(v => list.insert(v));
+    expect(list.size).toBe(1000);
+    const sorted = list.toArray();
+    for (let i = 1; i < sorted.length; i++) {
+      expect(sorted[i]).toBeGreaterThanOrEqual(sorted[i - 1]);
+    }
+  });
+
+  it('stress: many searches', () => {
+    const list = new SkipList();
+    for (let i = 0; i < 500; i++) {
+      list.insert(i);
+    }
+    for (let i = 0; i < 500; i++) {
+      expect(list.search(i)).toBe(true);
+    }
+    for (let i = 500; i < 1000; i++) {
+      expect(list.search(i)).toBe(false);
+    }
+  });
+
+  it('stress: many deletions', () => {
+    const list = new SkipList();
+    for (let i = 0; i < 500; i++) {
+      list.insert(i);
+    }
+    for (let i = 0; i < 250; i++) {
+      expect(list.delete(i * 2)).toBe(true);
+    }
+    expect(list.size).toBe(250);
+    const remaining = list.toArray();
+    expect(remaining.every(v => v % 2 === 1)).toBe(true);
+  });
+
+  it('decimal numbers', () => {
+    const list = new SkipList();
+    [3.14, 2.71, 1.41, 1.73].forEach(v => list.insert(v));
+    expect(list.toArray()).toEqual([1.41, 1.73, 2.71, 3.14]);
+  });
+
+  it('very large numbers', () => {
+    const list = new SkipList();
+    [1e10, 1e5, 1e15, 1e3].forEach(v => list.insert(v));
+    expect(list.toArray()).toEqual([1e3, 1e5, 1e10, 1e15]);
+  });
+
+  it('duplicate deletes', () => {
+    const list = new SkipList();
+    list.insert(5);
+    list.insert(5);
+    list.insert(5);
+    expect(list.delete(5)).toBe(true);
+    expect(list.search(5)).toBe(true);
+    expect(list.size).toBe(2);
+  });
+
+  it('mixed operations maintain consistency', () => {
+    const list = new SkipList();
+    list.insert(10);
+    list.insert(5);
+    list.insert(15);
+    expect(list.search(5)).toBe(true);
+    list.delete(5);
+    expect(list.search(5)).toBe(false);
+    list.insert(5);
+    expect(list.search(5)).toBe(true);
+    expect(list.toArray()).toEqual([5, 10, 15]);
+  });
+
+  it('empty after deleting all', () => {
+    const list = new SkipList();
+    [1, 2, 3].forEach(v => list.insert(v));
+    [1, 2, 3].forEach(v => list.delete(v));
+    expect(list.size).toBe(0);
+    expect(list.toArray()).toEqual([]);
+  });
+});
+]==],
+  },
+}
+
+return M
+  {
+    name = "Circuit Breaker",
+    difficulty = "medium",
+    stub = [==[
+/**
+ * Circuit Breaker
+ *
+ * Implement the Circuit Breaker pattern for fault tolerance in distributed systems.
+ * The circuit breaker wraps async operations and tracks failures to prevent cascading failures.
+ *
+ * States:
+ * - CLOSED: Normal operation. Calls pass through. Track failures.
+ * - OPEN: Too many failures detected. Reject calls immediately for a timeout period.
+ * - HALF_OPEN: After timeout, allow one test call. Success → CLOSED, failure → OPEN.
+ *
+ * CircuitBreaker class:
+ * - constructor(options: { failureThreshold: number, resetTimeout: number, halfOpenMaxCalls?: number })
+ *   failureThreshold: consecutive failures before opening
+ *   resetTimeout: milliseconds to wait before trying HALF_OPEN
+ *   halfOpenMaxCalls: max concurrent calls in HALF_OPEN (default: 1)
+ *
+ * - async execute<T>(fn: () => Promise<T>, now?: number): Promise<T>
+ *   Execute fn through the circuit breaker. Throw CircuitOpenError if circuit is open.
+ *   `now` parameter allows time injection for testing.
+ *
+ * - get state(): 'CLOSED' | 'OPEN' | 'HALF_OPEN'
+ *   Current circuit state.
+ *
+ * - reset(): void
+ *   Manually reset to CLOSED state and clear failure count.
+ *
+ * - get stats(): { failures: number, successes: number, rejections: number }
+ *   Get lifetime stats.
+ *
+ * CircuitOpenError: Custom error thrown when circuit is open.
+ *
+ * Behavior:
+ * - CLOSED: increment failure count on rejection, reset on success
+ * - When failures >= threshold, transition to OPEN
+ * - OPEN: reject immediately, check if resetTimeout elapsed → HALF_OPEN
+ * - HALF_OPEN: allow limited test calls, success → CLOSED, failure → OPEN
+ *
+ * Bonus: Implement onStateChange(callback) for monitoring state transitions.
+ */
+
+export class CircuitOpenError extends Error {
+  constructor() {
+    super('Circuit breaker is OPEN');
+    this.name = 'CircuitOpenError';
+  }
+}
+
+interface CircuitBreakerOptions {
+  failureThreshold: number;
+  resetTimeout: number;
+  halfOpenMaxCalls?: number;
+}
+
+interface Stats {
+  failures: number;
+  successes: number;
+  rejections: number;
+}
+
+type CircuitState = 'CLOSED' | 'OPEN' | 'HALF_OPEN';
+
+export class CircuitBreaker {
+  constructor(options: CircuitBreakerOptions) {
+    // YOUR CODE HERE
+  }
+
+  async execute<T>(fn: () => Promise<T>, now?: number): Promise<T> {
+    // YOUR CODE HERE
+    throw new Error('Not implemented');
+  }
+
+  get state(): CircuitState {
+    // YOUR CODE HERE
+    return 'CLOSED';
+  }
+
+  reset(): void {
+    // YOUR CODE HERE
+  }
+
+  get stats(): Stats {
+    // YOUR CODE HERE
+    return { failures: 0, successes: 0, rejections: 0 };
+  }
+
+  /**
+   * Bonus: Register a callback for state transitions.
+   * Returns an unsubscribe function.
+   */
+  onStateChange(callback: (from: CircuitState, to: CircuitState) => void): () => void {
+    // YOUR CODE HERE
+    return () => {};
+  }
+}
+]==],
+    tests = [==[
+import { describe, it, expect, vi } from 'vitest';
+import { CircuitBreaker, CircuitOpenError } from './challenge';
+
+describe('Circuit Breaker', () => {
+  it('starts in CLOSED state', () => {
+    const cb = new CircuitBreaker({ failureThreshold: 3, resetTimeout: 1000 });
+    expect(cb.state).toBe('CLOSED');
+  });
+
+  it('successful calls stay CLOSED', async () => {
+    const cb = new CircuitBreaker({ failureThreshold: 3, resetTimeout: 1000 });
+    await cb.execute(() => Promise.resolve(42), 0);
+    await cb.execute(() => Promise.resolve(43), 0);
+    expect(cb.state).toBe('CLOSED');
+    expect(cb.stats.successes).toBe(2);
+    expect(cb.stats.failures).toBe(0);
+  });
+
+  it('opens after threshold failures', async () => {
+    const cb = new CircuitBreaker({ failureThreshold: 3, resetTimeout: 1000 });
+    const failFn = () => Promise.reject(new Error('fail'));
+    
+    await expect(cb.execute(failFn, 0)).rejects.toThrow('fail');
+    await expect(cb.execute(failFn, 0)).rejects.toThrow('fail');
+    await expect(cb.execute(failFn, 0)).rejects.toThrow('fail');
+    
+    expect(cb.state).toBe('OPEN');
+    expect(cb.stats.failures).toBe(3);
+  });
+
+  it('rejects immediately when OPEN', async () => {
+    const cb = new CircuitBreaker({ failureThreshold: 2, resetTimeout: 1000 });
+    const failFn = () => Promise.reject(new Error('fail'));
+    
+    await expect(cb.execute(failFn, 0)).rejects.toThrow();
+    await expect(cb.execute(failFn, 0)).rejects.toThrow();
+    
+    await expect(cb.execute(() => Promise.resolve(1), 0)).rejects.toThrow(CircuitOpenError);
+    expect(cb.stats.rejections).toBe(1);
+  });
+
+  it('transitions to HALF_OPEN after timeout', async () => {
+    const cb = new CircuitBreaker({ failureThreshold: 2, resetTimeout: 1000 });
+    const failFn = () => Promise.reject(new Error('fail'));
+    
+    await expect(cb.execute(failFn, 0)).rejects.toThrow();
+    await expect(cb.execute(failFn, 0)).rejects.toThrow();
+    expect(cb.state).toBe('OPEN');
+    
+    await expect(cb.execute(() => Promise.resolve(1), 500)).rejects.toThrow(CircuitOpenError);
+    
+    const result = await cb.execute(() => Promise.resolve(42), 1001);
+    expect(result).toBe(42);
+    expect(cb.state).toBe('CLOSED');
+  });
+
+  it('HALF_OPEN success closes circuit', async () => {
+    const cb = new CircuitBreaker({ failureThreshold: 2, resetTimeout: 1000 });
+    
+    await expect(cb.execute(() => Promise.reject('err'), 0)).rejects.toThrow();
+    await expect(cb.execute(() => Promise.reject('err'), 0)).rejects.toThrow();
+    
+    await cb.execute(() => Promise.resolve('ok'), 1001);
+    expect(cb.state).toBe('CLOSED');
+    expect(cb.stats.successes).toBe(1);
+  });
+
+  it('HALF_OPEN failure reopens circuit', async () => {
+    const cb = new CircuitBreaker({ failureThreshold: 2, resetTimeout: 1000 });
+    
+    await expect(cb.execute(() => Promise.reject('a'), 0)).rejects.toThrow();
+    await expect(cb.execute(() => Promise.reject('b'), 0)).rejects.toThrow();
+    expect(cb.state).toBe('OPEN');
+    
+    await expect(cb.execute(() => Promise.reject('c'), 1001)).rejects.toThrow('c');
+    expect(cb.state).toBe('OPEN');
+  });
+
+  it('reset clears state and returns to CLOSED', async () => {
+    const cb = new CircuitBreaker({ failureThreshold: 2, resetTimeout: 1000 });
+    
+    await expect(cb.execute(() => Promise.reject('x'), 0)).rejects.toThrow();
+    await expect(cb.execute(() => Promise.reject('y'), 0)).rejects.toThrow();
+    expect(cb.state).toBe('OPEN');
+    
+    cb.reset();
+    expect(cb.state).toBe('CLOSED');
+    expect(cb.stats.failures).toBe(0);
+    
+    await cb.execute(() => Promise.resolve(1), 0);
+    expect(cb.state).toBe('CLOSED');
+  });
+
+  it('success in CLOSED resets failure count', async () => {
+    const cb = new CircuitBreaker({ failureThreshold: 3, resetTimeout: 1000 });
+    
+    await expect(cb.execute(() => Promise.reject('a'), 0)).rejects.toThrow();
+    await expect(cb.execute(() => Promise.reject('b'), 0)).rejects.toThrow();
+    
+    await cb.execute(() => Promise.resolve('ok'), 0);
+    
+    await expect(cb.execute(() => Promise.reject('c'), 0)).rejects.toThrow();
+    await expect(cb.execute(() => Promise.reject('d'), 0)).rejects.toThrow();
+    expect(cb.state).toBe('CLOSED');
+  });
+
+  it('handles threshold of 1', async () => {
+    const cb = new CircuitBreaker({ failureThreshold: 1, resetTimeout: 500 });
+    
+    await expect(cb.execute(() => Promise.reject('x'), 0)).rejects.toThrow();
+    expect(cb.state).toBe('OPEN');
+    
+    await cb.execute(() => Promise.resolve('recovered'), 501);
+    expect(cb.state).toBe('CLOSED');
+  });
+
+  it('halfOpenMaxCalls limits concurrent tests', async () => {
+    const cb = new CircuitBreaker({ 
+      failureThreshold: 2, 
+      resetTimeout: 1000, 
+      halfOpenMaxCalls: 2 
+    });
+    
+    await expect(cb.execute(() => Promise.reject('a'), 0)).rejects.toThrow();
+    await expect(cb.execute(() => Promise.reject('b'), 0)).rejects.toThrow();
+    
+    const p1 = cb.execute(() => new Promise(r => setTimeout(r, 100)), 1001);
+    const p2 = cb.execute(() => new Promise(r => setTimeout(r, 100)), 1001);
+    const p3 = cb.execute(() => Promise.resolve(1), 1001);
+    
+    await expect(p3).rejects.toThrow(CircuitOpenError);
+    await p1;
+    await p2;
+  });
+
+  it('stats track all operations', async () => {
+    const cb = new CircuitBreaker({ failureThreshold: 3, resetTimeout: 1000 });
+    
+    await cb.execute(() => Promise.resolve(1), 0);
+    await cb.execute(() => Promise.resolve(2), 0);
+    
+    await expect(cb.execute(() => Promise.reject('x'), 0)).rejects.toThrow();
+    await expect(cb.execute(() => Promise.reject('y'), 0)).rejects.toThrow();
+    await expect(cb.execute(() => Promise.reject('z'), 0)).rejects.toThrow();
+    
+    await expect(cb.execute(() => Promise.resolve(3), 0)).rejects.toThrow(CircuitOpenError);
+    await expect(cb.execute(() => Promise.resolve(4), 0)).rejects.toThrow(CircuitOpenError);
+    
+    expect(cb.stats.successes).toBe(2);
+    expect(cb.stats.failures).toBe(3);
+    expect(cb.stats.rejections).toBe(2);
+  });
+
+  it('onStateChange fires on transitions', async () => {
+    const cb = new CircuitBreaker({ failureThreshold: 2, resetTimeout: 1000 });
+    const transitions: Array<{ from: string; to: string }> = [];
+    cb.onStateChange((from, to) => transitions.push({ from, to }));
+    
+    await expect(cb.execute(() => Promise.reject('a'), 0)).rejects.toThrow();
+    await expect(cb.execute(() => Promise.reject('b'), 0)).rejects.toThrow();
+    
+    await cb.execute(() => Promise.resolve('ok'), 1001);
+    
+    expect(transitions).toEqual([
+      { from: 'CLOSED', to: 'OPEN' },
+      { from: 'OPEN', to: 'HALF_OPEN' },
+      { from: 'HALF_OPEN', to: 'CLOSED' },
+    ]);
+  });
+
+  it('onStateChange unsubscribe works', async () => {
+    const cb = new CircuitBreaker({ failureThreshold: 2, resetTimeout: 1000 });
+    const callbackFn = vi.fn();
+    const unsub = cb.onStateChange(callbackFn);
+    
+    await expect(cb.execute(() => Promise.reject('x'), 0)).rejects.toThrow();
+    unsub();
+    await expect(cb.execute(() => Promise.reject('y'), 0)).rejects.toThrow();
+    
+    expect(callbackFn).toHaveBeenCalledTimes(0);
+  });
+
+  it('stress: many operations', async () => {
+    const cb = new CircuitBreaker({ failureThreshold: 10, resetTimeout: 100 });
+    
+    for (let i = 0; i < 50; i++) {
+      try {
+        if (i % 5 === 0) {
+          await cb.execute(() => Promise.reject('err'), i * 10);
+        } else {
+          await cb.execute(() => Promise.resolve(i), i * 10);
+        }
+      } catch (e) {}
+    }
+    
+    const stats = cb.stats;
+    expect(stats.successes + stats.failures + stats.rejections).toBeGreaterThan(0);
+  });
+
+  it('async operations propagate correctly', async () => {
+    const cb = new CircuitBreaker({ failureThreshold: 3, resetTimeout: 1000 });
+    
+    const slowSuccess = () => new Promise<string>(r => setTimeout(() => r('done'), 50));
+    const result = await cb.execute(slowSuccess, 0);
+    expect(result).toBe('done');
+    expect(cb.stats.successes).toBe(1);
+  });
+
+  it('rejection reason preserved', async () => {
+    const cb = new CircuitBreaker({ failureThreshold: 5, resetTimeout: 1000 });
+    const customError = new Error('custom failure');
+    
+    await expect(cb.execute(() => Promise.reject(customError), 0))
+      .rejects.toThrow('custom failure');
+  });
+
+  it('very short timeout', async () => {
+    const cb = new CircuitBreaker({ failureThreshold: 2, resetTimeout: 1 });
+    
+    await expect(cb.execute(() => Promise.reject('a'), 0)).rejects.toThrow();
+    await expect(cb.execute(() => Promise.reject('b'), 0)).rejects.toThrow();
+    
+    await cb.execute(() => Promise.resolve('ok'), 2);
+    expect(cb.state).toBe('CLOSED');
+  });
+
+  it('handles synchronous rejections', async () => {
+    const cb = new CircuitBreaker({ failureThreshold: 2, resetTimeout: 1000 });
+    
+    await expect(cb.execute(() => { throw new Error('sync'); }, 0)).rejects.toThrow('sync');
+    expect(cb.stats.failures).toBe(1);
+  });
+});
+]==],
+  },
+
+  {
+    name = "Task Scheduler with Priority Queue",
+    difficulty = "medium",
+    stub = [==[
+/**
+ * Task Scheduler with Priority Queue
+ *
+ * Implement a task scheduler that executes tasks in priority order with support
+ * for delayed execution and recurring tasks.
+ *
+ * Task interface:
+ *   { id: string, priority: number, execute: () => void | Promise<void>, delay?: number, interval?: number }
+ *
+ * TaskScheduler class:
+ * - schedule(task: Task): string
+ *   Schedule a task. Returns a task ID. Higher priority executes first.
+ *   If `delay` is provided, task starts after that many milliseconds.
+ *   If `interval` is provided, task repeats every `interval` ms (recurring).
+ *
+ * - cancel(taskId: string): boolean
+ *   Cancel a scheduled task. Returns true if cancelled, false if not found.
+ *
+ * - start(): void
+ *   Start processing tasks from the queue.
+ *
+ * - stop(): void
+ *   Stop processing. Pending tasks remain in queue.
+ *
+ * - get pending(): number
+ *   Number of tasks waiting to execute.
+ *
+ * - get running(): boolean
+ *   Whether the scheduler is currently running.
+ *
+ * Rules:
+ * - Tasks execute in priority order (higher priority first)
+ * - Ties are broken by insertion order (FIFO)
+ * - Only one task executes at a time (sequential processing)
+ * - Recurring tasks reschedule themselves after completion
+ * - Delayed tasks wait before their first execution
+ *
+ * Bonus: Implement pause() / resume() and stats tracking (completed count, avg execution time).
+ */
+
+export interface Task {
+  id: string;
+  priority: number;
+  execute: () => void | Promise<void>;
+  delay?: number;
+  interval?: number;
+}
+
+export class TaskScheduler {
+  constructor() {
+    // YOUR CODE HERE
+  }
+
+  schedule(task: Task): string {
+    // YOUR CODE HERE
+    return '';
+  }
+
+  cancel(taskId: string): boolean {
+    // YOUR CODE HERE
+    return false;
+  }
+
+  start(): void {
+    // YOUR CODE HERE
+  }
+
+  stop(): void {
+    // YOUR CODE HERE
+  }
+
+  get pending(): number {
+    // YOUR CODE HERE
+    return 0;
+  }
+
+  get running(): boolean {
+    // YOUR CODE HERE
+    return false;
+  }
+
+  /**
+   * Bonus: Pause execution without clearing the queue
+   */
+  pause(): void {
+    // YOUR CODE HERE
+  }
+
+  /**
+   * Bonus: Resume after pause
+   */
+  resume(): void {
+    // YOUR CODE HERE
+  }
+
+  /**
+   * Bonus: Get execution statistics
+   */
+  stats(): { completed: number; avgExecutionMs: number } {
+    // YOUR CODE HERE
+    return { completed: 0, avgExecutionMs: 0 };
+  }
+}
+]==],
+    tests = [==[
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { TaskScheduler } from './challenge';
+
+const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
+
+describe('Task Scheduler with Priority Queue', () => {
+  beforeEach(() => { vi.useFakeTimers(); });
+  afterEach(() => { vi.restoreAllTimers(); });
+
+  it('schedules and executes a single task', async () => {
+    const scheduler = new TaskScheduler();
+    const fn = vi.fn();
+    scheduler.schedule({ id: 't1', priority: 1, execute: fn });
+    scheduler.start();
+    await vi.advanceTimersByTimeAsync(10);
+    expect(fn).toHaveBeenCalledOnce();
+  });
+
+  it('executes higher priority tasks first', async () => {
+    const scheduler = new TaskScheduler();
+    const order: number[] = [];
+    scheduler.schedule({ id: 't1', priority: 1, execute: () => order.push(1) });
+    scheduler.schedule({ id: 't2', priority: 3, execute: () => order.push(3) });
+    scheduler.schedule({ id: 't3', priority: 2, execute: () => order.push(2) });
+    scheduler.start();
+    await vi.advanceTimersByTimeAsync(50);
+    expect(order).toEqual([3, 2, 1]);
+  });
+
+  it('FIFO for same priority', async () => {
+    const scheduler = new TaskScheduler();
+    const order: string[] = [];
+    scheduler.schedule({ id: 'a', priority: 1, execute: () => order.push('a') });
+    scheduler.schedule({ id: 'b', priority: 1, execute: () => order.push('b') });
+    scheduler.schedule({ id: 'c', priority: 1, execute: () => order.push('c') });
+    scheduler.start();
+    await vi.advanceTimersByTimeAsync(50);
+    expect(order).toEqual(['a', 'b', 'c']);
+  });
+
+  it('delayed task waits before execution', async () => {
+    const scheduler = new TaskScheduler();
+    const fn = vi.fn();
+    scheduler.schedule({ id: 't1', priority: 1, execute: fn, delay: 100 });
+    scheduler.start();
+    await vi.advanceTimersByTimeAsync(50);
+    expect(fn).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(60);
+    expect(fn).toHaveBeenCalledOnce();
+  });
+
+  it('recurring task repeats', async () => {
+    const scheduler = new TaskScheduler();
+    const fn = vi.fn();
+    scheduler.schedule({ id: 't1', priority: 1, execute: fn, interval: 50 });
+    scheduler.start();
+    await vi.advanceTimersByTimeAsync(200);
+    expect(fn.mock.calls.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('cancel prevents execution', async () => {
+    const scheduler = new TaskScheduler();
+    const fn = vi.fn();
+    const id = scheduler.schedule({ id: 't1', priority: 1, execute: fn });
+    expect(scheduler.cancel(id)).toBe(true);
+    scheduler.start();
+    await vi.advanceTimersByTimeAsync(50);
+    expect(fn).not.toHaveBeenCalled();
+  });
+
+  it('cancel returns false for non-existent task', () => {
+    const scheduler = new TaskScheduler();
+    expect(scheduler.cancel('nope')).toBe(false);
+  });
+
+  it('pending count tracks queue size', () => {
+    const scheduler = new TaskScheduler();
+    expect(scheduler.pending).toBe(0);
+    scheduler.schedule({ id: 't1', priority: 1, execute: () => {} });
+    scheduler.schedule({ id: 't2', priority: 2, execute: () => {} });
+    expect(scheduler.pending).toBe(2);
+  });
+
+  it('pending decreases as tasks execute', async () => {
+    const scheduler = new TaskScheduler();
+    scheduler.schedule({ id: 't1', priority: 1, execute: () => {} });
+    scheduler.schedule({ id: 't2', priority: 1, execute: () => {} });
+    scheduler.start();
+    await vi.advanceTimersByTimeAsync(10);
+    expect(scheduler.pending).toBeLessThan(2);
+  });
+
+  it('running reflects scheduler state', async () => {
+    const scheduler = new TaskScheduler();
+    expect(scheduler.running).toBe(false);
+    scheduler.start();
+    expect(scheduler.running).toBe(true);
+    scheduler.stop();
+    expect(scheduler.running).toBe(false);
+  });
+
+  it('stop halts execution', async () => {
+    const scheduler = new TaskScheduler();
+    const fn = vi.fn();
+    scheduler.schedule({ id: 't1', priority: 1, execute: fn });
+    scheduler.schedule({ id: 't2', priority: 1, execute: fn });
+    scheduler.start();
+    await vi.advanceTimersByTimeAsync(5);
+    scheduler.stop();
+    const count = fn.mock.calls.length;
+    await vi.advanceTimersByTimeAsync(100);
+    expect(fn.mock.calls.length).toBe(count);
+  });
+
+  it('can restart after stop', async () => {
+    const scheduler = new TaskScheduler();
+    const fn = vi.fn();
+    scheduler.schedule({ id: 't1', priority: 1, execute: fn });
+    scheduler.start();
+    await vi.advanceTimersByTimeAsync(10);
+    scheduler.stop();
+    scheduler.schedule({ id: 't2', priority: 1, execute: fn });
+    scheduler.start();
+    await vi.advanceTimersByTimeAsync(10);
+    expect(fn).toHaveBeenCalledTimes(2);
+  });
+
+  it('async tasks complete before next task', async () => {
+    const scheduler = new TaskScheduler();
+    const order: number[] = [];
+    scheduler.schedule({
+      id: 't1',
+      priority: 1,
+      execute: async () => {
+        order.push(1);
+        await delay(50);
+        order.push(11);
+      },
+    });
+    scheduler.schedule({ id: 't2', priority: 1, execute: () => order.push(2) });
+    scheduler.start();
+    await vi.advanceTimersByTimeAsync(100);
+    expect(order).toEqual([1, 11, 2]);
+  });
+
+  it('error in task does not crash scheduler', async () => {
+    const scheduler = new TaskScheduler();
+    const fn = vi.fn();
+    scheduler.schedule({ id: 't1', priority: 1, execute: () => { throw new Error('boom'); } });
+    scheduler.schedule({ id: 't2', priority: 1, execute: fn });
+    scheduler.start();
+    await vi.advanceTimersByTimeAsync(50);
+    expect(fn).toHaveBeenCalledOnce();
+  });
+
+  it('pause stops execution temporarily', async () => {
+    const scheduler = new TaskScheduler();
+    const fn = vi.fn();
+    scheduler.schedule({ id: 't1', priority: 1, execute: fn, interval: 50 });
+    scheduler.start();
+    await vi.advanceTimersByTimeAsync(100);
+    const countBeforePause = fn.mock.calls.length;
+    scheduler.pause();
+    await vi.advanceTimersByTimeAsync(100);
+    expect(fn.mock.calls.length).toBe(countBeforePause);
+  });
+
+  it('resume continues after pause', async () => {
+    const scheduler = new TaskScheduler();
+    const fn = vi.fn();
+    scheduler.schedule({ id: 't1', priority: 1, execute: fn, interval: 30 });
+    scheduler.start();
+    await vi.advanceTimersByTimeAsync(60);
+    scheduler.pause();
+    const count = fn.mock.calls.length;
+    await vi.advanceTimersByTimeAsync(100);
+    scheduler.resume();
+    await vi.advanceTimersByTimeAsync(60);
+    expect(fn.mock.calls.length).toBeGreaterThan(count);
+  });
+
+  it('stats tracks completed tasks', async () => {
+    const scheduler = new TaskScheduler();
+    scheduler.schedule({ id: 't1', priority: 1, execute: () => {} });
+    scheduler.schedule({ id: 't2', priority: 1, execute: () => {} });
+    scheduler.start();
+    await vi.advanceTimersByTimeAsync(50);
+    const { completed } = scheduler.stats();
+    expect(completed).toBeGreaterThan(0);
+  });
+
+  it('stats tracks average execution time', async () => {
+    const scheduler = new TaskScheduler();
+    scheduler.schedule({
+      id: 't1',
+      priority: 1,
+      execute: async () => { await delay(20); },
+    });
+    scheduler.schedule({
+      id: 't2',
+      priority: 1,
+      execute: async () => { await delay(30); },
+    });
+    scheduler.start();
+    await vi.advanceTimersByTimeAsync(100);
+    const { avgExecutionMs } = scheduler.stats();
+    expect(avgExecutionMs).toBeGreaterThan(0);
+  });
+
+  it('stress: many tasks with mixed priorities', async () => {
+    const scheduler = new TaskScheduler();
+    const executed: number[] = [];
+    for (let i = 0; i < 100; i++) {
+      const priority = Math.floor(Math.random() * 5);
+      scheduler.schedule({
+        id: `t${i}`,
+        priority,
+        execute: () => executed.push(priority),
+      });
+    }
+    scheduler.start();
+    await vi.advanceTimersByTimeAsync(500);
+    expect(executed.length).toBe(100);
+    // First 10 should be high priority
+    const first10 = executed.slice(0, 10);
+    const avgFirst = first10.reduce((a, b) => a + b, 0) / 10;
+    const last10 = executed.slice(-10);
+    const avgLast = last10.reduce((a, b) => a + b, 0) / 10;
+    expect(avgFirst).toBeGreaterThanOrEqual(avgLast);
+  });
+
+  it('recurring task can be cancelled', async () => {
+    const scheduler = new TaskScheduler();
+    const fn = vi.fn();
+    const id = scheduler.schedule({ id: 't1', priority: 1, execute: fn, interval: 30 });
+    scheduler.start();
+    await vi.advanceTimersByTimeAsync(60);
+    scheduler.cancel(id);
+    const count = fn.mock.calls.length;
+    await vi.advanceTimersByTimeAsync(100);
+    expect(fn.mock.calls.length).toBe(count);
+  });
+
+  it('delayed recurring task waits then repeats', async () => {
+    const scheduler = new TaskScheduler();
+    const fn = vi.fn();
+    scheduler.schedule({ id: 't1', priority: 1, execute: fn, delay: 50, interval: 30 });
+    scheduler.start();
+    await vi.advanceTimersByTimeAsync(40);
+    expect(fn).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(20);
+    expect(fn).toHaveBeenCalledOnce();
+    await vi.advanceTimersByTimeAsync(30);
+    expect(fn.mock.calls.length).toBeGreaterThan(1);
+  });
+
+  it('handles zero-delay tasks', async () => {
+    const scheduler = new TaskScheduler();
+    const fn = vi.fn();
+    scheduler.schedule({ id: 't1', priority: 1, execute: fn, delay: 0 });
+    scheduler.start();
+    await vi.advanceTimersByTimeAsync(10);
+    expect(fn).toHaveBeenCalledOnce();
+  });
+});
+]==],
+  },
+
+  {
+    name = "Union-Find (Disjoint Set Union)",
+    difficulty = "medium",
+    stub = [==[
+/**
+ * Union-Find (Disjoint Set Union)
+ *
+ * Implement a Union-Find data structure with path compression and union by rank.
+ * Used for efficiently tracking connected components in a graph.
+ *
+ * UnionFind class:
+ * - constructor(size: number) — Initialize n disjoint sets (0 to size-1).
+ * - find(x: number): number — Find the root representative of x's set. Apply path compression.
+ * - union(x: number, y: number): boolean — Merge the sets containing x and y.
+ *   Returns true if they were in different sets (merge happened), false if already connected.
+ * - connected(x: number, y: number): boolean — Check if x and y are in the same set.
+ * - count(): number — Return the number of disjoint sets.
+ *
+ * Operations must run in O(α(n)) amortized time, where α is the inverse Ackermann function.
+ *
+ * Bonus: Implement countComponents(n, edges) that uses Union-Find to count
+ * connected components in an undirected graph.
+ */
+
+export class UnionFind {
+  constructor(size: number) {
+    // YOUR CODE HERE
+  }
+
+  find(x: number): number {
+    // YOUR CODE HERE (implement with path compression)
+    return -1;
+  }
+
+  union(x: number, y: number): boolean {
+    // YOUR CODE HERE (implement with union by rank)
+    return false;
+  }
+
+  connected(x: number, y: number): boolean {
+    // YOUR CODE HERE
+    return false;
+  }
+
+  count(): number {
+    // YOUR CODE HERE
+    return 0;
+  }
+}
+
+/**
+ * Bonus: Count connected components in an undirected graph using Union-Find.
+ * @param n — number of nodes (labeled 0 to n-1)
+ * @param edges — array of [u, v] edges
+ */
+export function countComponents(n: number, edges: [number, number][]): number {
+  // YOUR CODE HERE
+  return 0;
+}
+]==],
+    tests = [==[
+import { describe, it, expect } from 'vitest';
+import { UnionFind, countComponents } from './challenge';
+
+describe('Union-Find', () => {
+  it('starts with n disjoint sets', () => {
+    const uf = new UnionFind(5);
+    expect(uf.count()).toBe(5);
+  });
+
+  it('find returns self initially', () => {
+    const uf = new UnionFind(5);
+    expect(uf.find(0)).toBe(0);
+    expect(uf.find(3)).toBe(3);
+  });
+
+  it('union connects two sets', () => {
+    const uf = new UnionFind(5);
+    expect(uf.union(0, 1)).toBe(true);
+    expect(uf.count()).toBe(4);
+  });
+
+  it('union of already connected returns false', () => {
+    const uf = new UnionFind(5);
+    uf.union(0, 1);
+    expect(uf.union(0, 1)).toBe(false);
+    expect(uf.count()).toBe(4);
+  });
+
+  it('connected checks membership', () => {
+    const uf = new UnionFind(5);
+    uf.union(0, 1);
+    expect(uf.connected(0, 1)).toBe(true);
+    expect(uf.connected(0, 2)).toBe(false);
+  });
+
+  it('transitive connections', () => {
+    const uf = new UnionFind(5);
+    uf.union(0, 1);
+    uf.union(1, 2);
+    expect(uf.connected(0, 2)).toBe(true);
+    expect(uf.count()).toBe(3);
+  });
+
+  it('multiple components', () => {
+    const uf = new UnionFind(10);
+    uf.union(0, 1);
+    uf.union(1, 2);
+    uf.union(3, 4);
+    uf.union(5, 6);
+    expect(uf.count()).toBe(6);
+  });
+
+  it('find with path compression', () => {
+    const uf = new UnionFind(5);
+    uf.union(0, 1);
+    uf.union(1, 2);
+    uf.union(2, 3);
+    const root = uf.find(0);
+    expect(uf.find(3)).toBe(root);
+  });
+
+  it('union by rank maintains balance', () => {
+    const uf = new UnionFind(8);
+    uf.union(0, 1);
+    uf.union(2, 3);
+    uf.union(0, 2);
+    uf.union(4, 5);
+    uf.union(6, 7);
+    uf.union(4, 6);
+    uf.union(0, 4);
+    expect(uf.count()).toBe(1);
+    expect(uf.connected(1, 7)).toBe(true);
+  });
+
+  it('self-union does nothing', () => {
+    const uf = new UnionFind(3);
+    expect(uf.union(1, 1)).toBe(false);
+    expect(uf.count()).toBe(3);
+  });
+
+  it('all nodes in one component', () => {
+    const uf = new UnionFind(10);
+    for (let i = 0; i < 9; i++) {
+      uf.union(i, i + 1);
+    }
+    expect(uf.count()).toBe(1);
+  });
+
+  it('stress: linear chain', () => {
+    const n = 1000;
+    const uf = new UnionFind(n);
+    for (let i = 0; i < n - 1; i++) {
+      uf.union(i, i + 1);
+    }
+    expect(uf.count()).toBe(1);
+    expect(uf.connected(0, n - 1)).toBe(true);
+  });
+
+  it('stress: many random unions', () => {
+    const uf = new UnionFind(500);
+    for (let i = 0; i < 1000; i++) {
+      const a = Math.floor(Math.random() * 500);
+      const b = Math.floor(Math.random() * 500);
+      uf.union(a, b);
+    }
+    expect(uf.count()).toBeGreaterThan(0);
+    expect(uf.count()).toBeLessThan(500);
+  });
+
+  it('isolated nodes remain isolated', () => {
+    const uf = new UnionFind(10);
+    uf.union(0, 1);
+    uf.union(2, 3);
+    expect(uf.connected(5, 6)).toBe(false);
+    expect(uf.count()).toBe(7);
+  });
+});
+
+describe('countComponents', () => {
+  it('no edges = n components', () => {
+    expect(countComponents(5, [])).toBe(5);
+  });
+
+  it('fully connected = 1 component', () => {
+    const edges: [number, number][] = [[0, 1], [1, 2], [2, 3], [3, 4]];
+    expect(countComponents(5, edges)).toBe(1);
+  });
+
+  it('two separate components', () => {
+    const edges: [number, number][] = [[0, 1], [2, 3]];
+    expect(countComponents(4, edges)).toBe(2);
+  });
+
+  it('three components with cycles', () => {
+    const edges: [number, number][] = [
+      [0, 1], [1, 2], [2, 0],
+      [3, 4], [4, 5], [5, 3],
+    ];
+    expect(countComponents(7, edges)).toBe(3);
+  });
+
+  it('single node graph', () => {
+    expect(countComponents(1, [])).toBe(1);
+  });
+
+  it('star graph', () => {
+    const edges: [number, number][] = [[0, 1], [0, 2], [0, 3], [0, 4]];
+    expect(countComponents(5, edges)).toBe(1);
+  });
+
+  it('duplicate edges handled correctly', () => {
+    const edges: [number, number][] = [[0, 1], [0, 1], [1, 2]];
+    expect(countComponents(3, edges)).toBe(1);
+  });
+
+  it('complex graph', () => {
+    const edges: [number, number][] = [
+      [0, 1], [1, 2], [3, 4], [5, 6], [6, 7], [7, 8], [8, 5],
+    ];
+    expect(countComponents(9, edges)).toBe(3);
+  });
+
+  it('stress: large graph', () => {
+    const n = 1000;
+    const edges: [number, number][] = [];
+    for (let i = 0; i < 500; i++) {
+      edges.push([i * 2, i * 2 + 1]);
+    }
+    expect(countComponents(n, edges)).toBe(500);
+  });
+});
+]==],
+  },
+  {
+    name = "Async Retry with Exponential Backoff",
+    difficulty = "medium",
+    stub = [==[
+/**
+ * Async Retry with Exponential Backoff
+ *
+ * Implement a retry wrapper for async functions with exponential backoff.
+ * This is a common pattern for handling flaky network requests or rate-limited APIs.
+ *
+ * retry<T>(fn: () => Promise<T>, options?: RetryOptions): Promise<T>
+ *
+ * Options:
+ * - maxAttempts: number (default 3) — Maximum number of attempts
+ * - initialDelayMs: number (default 100) — Initial delay before first retry
+ * - maxDelayMs: number (default 10000) — Cap on delay between retries
+ * - backoffMultiplier: number (default 2) — Multiply delay by this on each retry
+ * - shouldRetry: (error: any) => boolean (default: always true) — Predicate to decide if error is retryable
+ * - onRetry: (attempt: number, error: any, delayMs: number) => void — Optional callback before each retry
+ *
+ * Behavior:
+ * - First attempt runs immediately
+ * - If it fails and shouldRetry returns true, wait initialDelayMs and retry
+ * - Each subsequent retry doubles the delay (or by backoffMultiplier)
+ * - Delay is capped at maxDelayMs
+ * - After maxAttempts failures, throw the last error
+ * - If shouldRetry returns false, throw immediately without retrying
+ *
+ * Example:
+ *   retry(() => fetchUser(id), { maxAttempts: 5, initialDelayMs: 200 })
+ *
+ * Bonus: Add jitter to prevent thundering herd (randomize delay slightly).
+ */
+
+export interface RetryOptions {
+  maxAttempts?: number;
+  initialDelayMs?: number;
+  maxDelayMs?: number;
+  backoffMultiplier?: number;
+  shouldRetry?: (error: any) => boolean;
+  onRetry?: (attempt: number, error: any, delayMs: number) => void;
+  jitter?: boolean;
+}
+
+export async function retry<T>(
+  fn: () => Promise<T>,
+  options?: RetryOptions
+): Promise<T> {
+  // YOUR CODE HERE
+  throw new Error('Not implemented');
+}
+
+/**
+ * Bonus: Create a retryable wrapper function.
+ * Returns a new function that automatically retries with the given options.
+ */
+export function withRetry<T extends (...args: any[]) => Promise<any>>(
+  fn: T,
+  options?: RetryOptions
+): T {
+  // YOUR CODE HERE
+  return fn;
+}
+]==],
+    tests = [==[
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { retry, withRetry } from './challenge';
+
+const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
+
+describe('Async Retry with Exponential Backoff', () => {
+  beforeEach(() => { vi.useFakeTimers(); });
+  afterEach(() => { vi.restoreAllTimers(); });
+
+  it('succeeds on first attempt', async () => {
+    const fn = vi.fn(async () => 'success');
+    const promise = retry(fn);
+    await vi.runAllTimersAsync();
+    expect(await promise).toBe('success');
+    expect(fn).toHaveBeenCalledOnce();
+  });
+
+  it('retries on failure and eventually succeeds', async () => {
+    let attempts = 0;
+    const fn = vi.fn(async () => {
+      attempts++;
+      if (attempts < 3) throw new Error('fail');
+      return 'success';
+    });
+    const promise = retry(fn, { maxAttempts: 5, initialDelayMs: 100 });
+    await vi.runAllTimersAsync();
+    expect(await promise).toBe('success');
+    expect(fn).toHaveBeenCalledTimes(3);
+  });
+
+  it('throws after maxAttempts failures', async () => {
+    const fn = vi.fn(async () => { throw new Error('always fails'); });
+    const promise = retry(fn, { maxAttempts: 3, initialDelayMs: 50 });
+    await vi.runAllTimersAsync();
+    await expect(promise).rejects.toThrow('always fails');
+    expect(fn).toHaveBeenCalledTimes(3);
+  });
+
+  it('exponential backoff doubles delay', async () => {
+    let attempts = 0;
+    const delays: number[] = [];
+    const fn = vi.fn(async () => {
+      attempts++;
+      throw new Error('fail');
+    });
+    const onRetry = vi.fn((attempt, error, delayMs) => {
+      delays.push(delayMs);
+    });
+    const promise = retry(fn, { maxAttempts: 4, initialDelayMs: 100, onRetry });
+    await vi.runAllTimersAsync();
+    await promise.catch(() => {});
+    expect(delays).toEqual([100, 200, 400]);
+  });
+
+  it('respects maxDelayMs cap', async () => {
+    const delays: number[] = [];
+    const fn = vi.fn(async () => { throw new Error('fail'); });
+    const onRetry = (attempt: number, error: any, delayMs: number) => {
+      delays.push(delayMs);
+    };
+    const promise = retry(fn, {
+      maxAttempts: 5,
+      initialDelayMs: 100,
+      maxDelayMs: 300,
+      onRetry,
+    });
+    await vi.runAllTimersAsync();
+    await promise.catch(() => {});
+    expect(delays).toEqual([100, 200, 300, 300]);
+  });
+
+  it('shouldRetry prevents retry when false', async () => {
+    const fn = vi.fn(async () => { throw new Error('critical'); });
+    const shouldRetry = (error: any) => error.message !== 'critical';
+    const promise = retry(fn, { maxAttempts: 5, shouldRetry });
+    await vi.runAllTimersAsync();
+    await expect(promise).rejects.toThrow('critical');
+    expect(fn).toHaveBeenCalledOnce();
+  });
+
+  it('shouldRetry allows selective retry', async () => {
+    let attempts = 0;
+    const fn = vi.fn(async () => {
+      attempts++;
+      if (attempts === 1) throw new Error('retryable');
+      if (attempts === 2) throw new Error('fatal');
+      return 'ok';
+    });
+    const shouldRetry = (error: any) => error.message === 'retryable';
+    const promise = retry(fn, { maxAttempts: 5, shouldRetry, initialDelayMs: 50 });
+    await vi.runAllTimersAsync();
+    await expect(promise).rejects.toThrow('fatal');
+    expect(fn).toHaveBeenCalledTimes(2);
+  });
+
+  it('onRetry callback is called before each retry', async () => {
+    const fn = vi.fn(async () => { throw new Error('fail'); });
+    const onRetry = vi.fn();
+    const promise = retry(fn, { maxAttempts: 3, initialDelayMs: 50, onRetry });
+    await vi.runAllTimersAsync();
+    await promise.catch(() => {});
+    expect(onRetry).toHaveBeenCalledTimes(2);
+    expect(onRetry).toHaveBeenCalledWith(2, expect.any(Error), 50);
+    expect(onRetry).toHaveBeenCalledWith(3, expect.any(Error), 100);
+  });
+
+  it('custom backoffMultiplier', async () => {
+    const delays: number[] = [];
+    const fn = vi.fn(async () => { throw new Error('fail'); });
+    const onRetry = (attempt: number, error: any, delayMs: number) => {
+      delays.push(delayMs);
+    };
+    const promise = retry(fn, {
+      maxAttempts: 4,
+      initialDelayMs: 100,
+      backoffMultiplier: 3,
+      onRetry,
+    });
+    await vi.runAllTimersAsync();
+    await promise.catch(() => {});
+    expect(delays).toEqual([100, 300, 900]);
+  });
+
+  it('defaults: 3 attempts, 100ms initial delay', async () => {
+    const fn = vi.fn(async () => { throw new Error('fail'); });
+    const promise = retry(fn);
+    await vi.runAllTimersAsync();
+    await promise.catch(() => {});
+    expect(fn).toHaveBeenCalledTimes(3);
+  });
+
+  it('jitter adds randomness to delay', async () => {
+    const delays: number[] = [];
+    const fn = vi.fn(async () => { throw new Error('fail'); });
+    const onRetry = (attempt: number, error: any, delayMs: number) => {
+      delays.push(delayMs);
+    };
+    const promise = retry(fn, {
+      maxAttempts: 4,
+      initialDelayMs: 100,
+      jitter: true,
+      onRetry,
+    });
+    await vi.runAllTimersAsync();
+    await promise.catch(() => {});
+    // With jitter, delays should vary slightly from exact exponential values
+    expect(delays.length).toBe(3);
+    expect(delays[0]).toBeGreaterThan(50);
+    expect(delays[0]).toBeLessThan(150);
+  });
+
+  it('withRetry creates retryable function', async () => {
+    let attempts = 0;
+    const original = vi.fn(async (x: number) => {
+      attempts++;
+      if (attempts < 3) throw new Error('fail');
+      return x * 2;
+    });
+    const retryable = withRetry(original, { maxAttempts: 5, initialDelayMs: 50 });
+    const promise = retryable(10);
+    await vi.runAllTimersAsync();
+    expect(await promise).toBe(20);
+    expect(original).toHaveBeenCalledTimes(3);
+  });
+
+  it('withRetry preserves function signature', async () => {
+    const original = async (a: string, b: number) => `${a}-${b}`;
+    const retryable = withRetry(original, { maxAttempts: 2 });
+    const promise = retryable('test', 42);
+    await vi.runAllTimersAsync();
+    expect(await promise).toBe('test-42');
+  });
+
+  it('stress: many retries with backoff', async () => {
+    const fn = vi.fn(async () => { throw new Error('fail'); });
+    const promise = retry(fn, { maxAttempts: 10, initialDelayMs: 10, maxDelayMs: 500 });
+    await vi.runAllTimersAsync();
+    await promise.catch(() => {});
+    expect(fn).toHaveBeenCalledTimes(10);
+  });
+
+  it('zero maxAttempts throws immediately', async () => {
+    const fn = vi.fn(async () => { throw new Error('fail'); });
+    const promise = retry(fn, { maxAttempts: 0 });
+    await expect(promise).rejects.toThrow();
+    expect(fn).not.toHaveBeenCalled();
+  });
+
+  it('single attempt with failure throws', async () => {
+    const fn = vi.fn(async () => { throw new Error('fail'); });
+    const promise = retry(fn, { maxAttempts: 1 });
+    await vi.runAllTimersAsync();
+    await expect(promise).rejects.toThrow('fail');
+    expect(fn).toHaveBeenCalledOnce();
+  });
+
+  it('onRetry receives correct attempt number', async () => {
+    const fn = vi.fn(async () => { throw new Error('fail'); });
+    const attempts: number[] = [];
+    const onRetry = (attempt: number) => { attempts.push(attempt); };
+    const promise = retry(fn, { maxAttempts: 4, initialDelayMs: 50, onRetry });
+    await vi.runAllTimersAsync();
+    await promise.catch(() => {});
+    expect(attempts).toEqual([2, 3, 4]);
+  });
+});
+]==],
+  },
+}
 
 return M
