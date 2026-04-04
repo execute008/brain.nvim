@@ -10592,4 +10592,277 @@ describe('CancellablePromise', () => {
   },
 
 
+  {
+    name = "Segment Tree",
+    difficulty = "hard",
+    stub = [==[
+/**
+ * Segment Tree
+ *
+ * Implement a Segment Tree for efficient range queries and point updates.
+ *
+ * SegmentTree class:
+ * - constructor(arr: number[]) — Build the tree from an initial array. O(n)
+ * - query(l: number, r: number): number — Range sum query [l, r] (inclusive). O(log n)
+ * - update(index: number, value: number): void — Point update: set arr[index] = value. O(log n)
+ * - rangeMin(l: number, r: number): number — Range minimum query [l, r]. O(log n)
+ * - rangeMax(l: number, r: number): number — Range maximum query [l, r]. O(log n)
+ *
+ * Bonus: LazySegTree with range updates (add delta to all elements in a range).
+ * - constructor(arr: number[])
+ * - rangeAdd(l: number, r: number, delta: number): void — O(log n)
+ * - query(l: number, r: number): number — Range sum query. O(log n)
+ */
+
+export class SegmentTree {
+  constructor(arr: number[]) {
+    // YOUR CODE HERE
+  }
+
+  query(l: number, r: number): number {
+    // YOUR CODE HERE
+    return 0;
+  }
+
+  update(index: number, value: number): void {
+    // YOUR CODE HERE
+  }
+
+  rangeMin(l: number, r: number): number {
+    // YOUR CODE HERE
+    return Infinity;
+  }
+
+  rangeMax(l: number, r: number): number {
+    // YOUR CODE HERE
+    return -Infinity;
+  }
+}
+
+export class LazySegTree {
+  constructor(arr: number[]) {
+    // YOUR CODE HERE
+  }
+
+  rangeAdd(l: number, r: number, delta: number): void {
+    // YOUR CODE HERE
+  }
+
+  query(l: number, r: number): number {
+    // YOUR CODE HERE
+    return 0;
+  }
+}
+]==],
+    tests = [==[
+import { describe, it, expect } from 'vitest';
+import { SegmentTree, LazySegTree } from './challenge';
+
+describe('SegmentTree - Range Sum', () => {
+  it('builds from array and queries full range', () => {
+    const st = new SegmentTree([1, 2, 3, 4, 5]);
+    expect(st.query(0, 4)).toBe(15);
+  });
+
+  it('queries a sub-range', () => {
+    const st = new SegmentTree([1, 2, 3, 4, 5]);
+    expect(st.query(1, 3)).toBe(9);
+  });
+
+  it('queries single element', () => {
+    const st = new SegmentTree([10, 20, 30]);
+    expect(st.query(1, 1)).toBe(20);
+  });
+
+  it('updates a value and reflects in query', () => {
+    const st = new SegmentTree([1, 2, 3, 4, 5]);
+    st.update(2, 10);
+    expect(st.query(0, 4)).toBe(22);
+    expect(st.query(1, 3)).toBe(16);
+  });
+
+  it('multiple updates', () => {
+    const st = new SegmentTree([1, 2, 3, 4, 5]);
+    st.update(0, 10);
+    st.update(4, 10);
+    expect(st.query(0, 4)).toBe(29);
+  });
+
+  it('update to zero', () => {
+    const st = new SegmentTree([5, 5, 5]);
+    st.update(1, 0);
+    expect(st.query(0, 2)).toBe(10);
+  });
+
+  it('single element array', () => {
+    const st = new SegmentTree([42]);
+    expect(st.query(0, 0)).toBe(42);
+    st.update(0, 100);
+    expect(st.query(0, 0)).toBe(100);
+  });
+
+  it('negative numbers', () => {
+    const st = new SegmentTree([-3, -1, 2, -4, 5]);
+    expect(st.query(0, 4)).toBe(-1);
+    expect(st.query(1, 3)).toBe(-3);
+  });
+
+  it('large array sum', () => {
+    const arr = Array.from({ length: 1000 }, (_, i) => i + 1);
+    const st = new SegmentTree(arr);
+    expect(st.query(0, 999)).toBe(500500);
+  });
+
+  it('adjacent element queries', () => {
+    const st = new SegmentTree([1, 2, 3, 4, 5]);
+    expect(st.query(0, 0)).toBe(1);
+    expect(st.query(1, 1)).toBe(2);
+    expect(st.query(4, 4)).toBe(5);
+  });
+
+  it('stress: random updates and queries match naive', () => {
+    const arr = Array.from({ length: 100 }, (_, i) => i);
+    const naive = [...arr];
+    const st = new SegmentTree(arr);
+    for (let i = 0; i < 200; i++) {
+      const idx = Math.floor(Math.random() * 100);
+      const val = Math.floor(Math.random() * 100);
+      naive[idx] = val;
+      st.update(idx, val);
+    }
+    for (let i = 0; i < 50; i++) {
+      const l = Math.floor(Math.random() * 100);
+      const r = l + Math.floor(Math.random() * (100 - l));
+      const expected = naive.slice(l, r + 1).reduce((a, b) => a + b, 0);
+      expect(st.query(l, r)).toBe(expected);
+    }
+  });
+});
+
+describe('SegmentTree - Range Min/Max', () => {
+  const arr = [3, 1, 4, 1, 5, 9, 2, 6];
+
+  it('rangeMin on full array', () => {
+    const st = new SegmentTree(arr);
+    expect(st.rangeMin(0, 7)).toBe(1);
+  });
+
+  it('rangeMax on full array', () => {
+    const st = new SegmentTree(arr);
+    expect(st.rangeMax(0, 7)).toBe(9);
+  });
+
+  it('rangeMin on sub-range', () => {
+    const st = new SegmentTree(arr);
+    expect(st.rangeMin(0, 3)).toBe(1);
+    expect(st.rangeMin(4, 7)).toBe(2);
+  });
+
+  it('rangeMax on sub-range', () => {
+    const st = new SegmentTree(arr);
+    expect(st.rangeMax(0, 3)).toBe(4);
+    expect(st.rangeMax(4, 7)).toBe(9);
+  });
+
+  it('rangeMin single element', () => {
+    const st = new SegmentTree([7, 3, 9]);
+    expect(st.rangeMin(1, 1)).toBe(3);
+  });
+
+  it('rangeMax updates correctly', () => {
+    const st = new SegmentTree([1, 2, 3]);
+    st.update(1, 100);
+    expect(st.rangeMax(0, 2)).toBe(100);
+  });
+
+  it('rangeMin updates correctly', () => {
+    const st = new SegmentTree([5, 10, 15]);
+    st.update(2, 1);
+    expect(st.rangeMin(0, 2)).toBe(1);
+  });
+
+  it('negative number min/max', () => {
+    const st = new SegmentTree([-5, -1, -10, 0, 3]);
+    expect(st.rangeMin(0, 4)).toBe(-10);
+    expect(st.rangeMax(0, 4)).toBe(3);
+  });
+
+  it('stress: min/max with updates', () => {
+    const arr = Array.from({ length: 100 }, (_, i) => i * 3);
+    const st = new SegmentTree(arr);
+    st.update(50, -999);
+    expect(st.rangeMin(0, 99)).toBe(-999);
+    expect(st.rangeMin(0, 49)).toBe(0);
+    st.update(0, 9999);
+    expect(st.rangeMax(0, 99)).toBe(9999);
+  });
+});
+
+describe('LazySegTree - Range Update + Query', () => {
+  it('initial sum query', () => {
+    const lst = new LazySegTree([1, 2, 3, 4, 5]);
+    expect(lst.query(0, 4)).toBe(15);
+  });
+
+  it('rangeAdd updates full range', () => {
+    const lst = new LazySegTree([1, 2, 3, 4, 5]);
+    lst.rangeAdd(0, 4, 10);
+    expect(lst.query(0, 4)).toBe(65);
+  });
+
+  it('rangeAdd updates partial range', () => {
+    const lst = new LazySegTree([1, 2, 3, 4, 5]);
+    lst.rangeAdd(1, 3, 5);
+    expect(lst.query(0, 4)).toBe(30);
+    expect(lst.query(1, 3)).toBe(24);
+    expect(lst.query(0, 0)).toBe(1);
+    expect(lst.query(4, 4)).toBe(5);
+  });
+
+  it('multiple range adds', () => {
+    const lst = new LazySegTree([0, 0, 0, 0, 0]);
+    lst.rangeAdd(0, 4, 1);
+    lst.rangeAdd(1, 3, 2);
+    lst.rangeAdd(2, 2, 3);
+    // [1, 3, 6, 3, 1] => sum = 14
+    expect(lst.query(0, 4)).toBe(14);
+    expect(lst.query(2, 2)).toBe(6);
+  });
+
+  it('negative delta', () => {
+    const lst = new LazySegTree([10, 10, 10, 10, 10]);
+    lst.rangeAdd(0, 4, -5);
+    expect(lst.query(0, 4)).toBe(25);
+  });
+
+  it('single element range add', () => {
+    const lst = new LazySegTree([1, 2, 3]);
+    lst.rangeAdd(1, 1, 100);
+    expect(lst.query(0, 2)).toBe(106);
+    expect(lst.query(1, 1)).toBe(102);
+  });
+
+  it('stress: range adds and queries match naive', () => {
+    const n = 100;
+    const arr = Array.from({ length: n }, () => 0);
+    const naive = [...arr];
+    const lst = new LazySegTree(arr);
+    for (let i = 0; i < 100; i++) {
+      const l = Math.floor(Math.random() * n);
+      const r = l + Math.floor(Math.random() * (n - l));
+      const delta = Math.floor(Math.random() * 10) - 5;
+      for (let j = l; j <= r; j++) naive[j] += delta;
+      lst.rangeAdd(l, r, delta);
+    }
+    for (let i = 0; i < 20; i++) {
+      const l = Math.floor(Math.random() * n);
+      const r = l + Math.floor(Math.random() * (n - l));
+      const expected = naive.slice(l, r + 1).reduce((a, b) => a + b, 0);
+      expect(lst.query(l, r)).toBe(expected);
+    }
+  });
+});
+]==],
+  },
+
 return M
