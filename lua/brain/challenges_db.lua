@@ -7216,6 +7216,177 @@ describe('trapRainWater', () => {
 });
 ]=],
   },
+  {
+    name = "Consistent Hash Ring",
+    difficulty = "medium",
+    stub = [=[
+/**
+ * Consistent Hash Ring
+ *
+ * Build a simplified consistent hash ring, a technique used by systems like
+ * distributed caches and load balancers to place keys across nodes while
+ * minimizing reshuffles when nodes join or leave.
+ *
+ * Implement the ConsistentHashRing class:
+ *
+ * - constructor(replicas?: number)
+ *   Create a ring with the given number of virtual nodes (replicas) per real node.
+ *   Use 100 replicas by default.
+ *
+ * - addNode(nodeId: string): void
+ *   Add a real node to the ring. Ignore duplicates.
+ *
+ * - removeNode(nodeId: string): void
+ *   Remove a real node and all of its virtual nodes. Ignore missing nodes.
+ *
+ * - getNode(key: string): string | null
+ *   Return the node responsible for the key, or null when the ring is empty.
+ *   Hash the key, then walk clockwise to the first virtual node whose hash is
+ *   greater than or equal to the key hash. If you reach the end, wrap to the start.
+ *
+ * - getDistribution(keys: string[]): Map<string, number>
+ *   Return how many of the provided keys map to each real node.
+ *
+ * Requirements:
+ * - Keep the ring sorted by hash.
+ * - Virtual nodes should be hashed as `${nodeId}#${replicaIndex}`.
+ * - The hash function must be deterministic and return an unsigned 32-bit integer.
+ */
+
+export class ConsistentHashRing {
+  constructor(replicas = 100) {
+    // YOUR CODE HERE
+  }
+
+  addNode(nodeId: string): void {
+    // YOUR CODE HERE
+  }
+
+  removeNode(nodeId: string): void {
+    // YOUR CODE HERE
+  }
+
+  getNode(key: string): string | null {
+    // YOUR CODE HERE
+    return null;
+  }
+
+  getDistribution(keys: string[]): Map<string, number> {
+    // YOUR CODE HERE
+    return new Map();
+  }
+}
+]=],
+    tests = [=[
+import { describe, it, expect } from 'vitest';
+import { ConsistentHashRing } from './challenge';
+
+describe('Consistent Hash Ring', () => {
+  it('returns null when the ring is empty', () => {
+    const ring = new ConsistentHashRing();
+    expect(ring.getNode('user:1')).toBeNull();
+  });
+
+  it('maps all keys to the only node', () => {
+    const ring = new ConsistentHashRing(10);
+    ring.addNode('node-a');
+    expect(ring.getNode('alpha')).toBe('node-a');
+    expect(ring.getNode('beta')).toBe('node-a');
+    expect(ring.getNode('gamma')).toBe('node-a');
+  });
+
+  it('is deterministic for the same key set', () => {
+    const ring = new ConsistentHashRing(50);
+    ring.addNode('node-a');
+    ring.addNode('node-b');
+    ring.addNode('node-c');
+    const first = ['k1', 'k2', 'k3', 'k4', 'k5'].map(key => ring.getNode(key));
+    const second = ['k1', 'k2', 'k3', 'k4', 'k5'].map(key => ring.getNode(key));
+    expect(second).toEqual(first);
+  });
+
+  it('ignores duplicate node additions', () => {
+    const ring = new ConsistentHashRing(25);
+    ring.addNode('node-a');
+    ring.addNode('node-a');
+    const distribution = ring.getDistribution(['a', 'b', 'c', 'd']);
+    expect(Array.from(distribution.keys())).toEqual(['node-a']);
+    expect(distribution.get('node-a')).toBe(4);
+  });
+
+  it('ignores removing a missing node', () => {
+    const ring = new ConsistentHashRing(25);
+    ring.addNode('node-a');
+    ring.removeNode('node-b');
+    expect(ring.getNode('still-here')).toBe('node-a');
+  });
+
+  it('removes all virtual nodes for a removed node', () => {
+    const ring = new ConsistentHashRing(30);
+    ring.addNode('node-a');
+    ring.addNode('node-b');
+    ring.addNode('node-c');
+    ring.removeNode('node-b');
+
+    const assigned = ['one', 'two', 'three', 'four', 'five'].map(key => ring.getNode(key));
+    expect(assigned.every(node => node === 'node-a' || node === 'node-c')).toBe(true);
+  });
+
+  it('reports distribution counts for provided keys', () => {
+    const ring = new ConsistentHashRing(40);
+    ring.addNode('node-a');
+    ring.addNode('node-b');
+    const keys = Array.from({ length: 20 }, (_, i) => `key-${i}`);
+    const distribution = ring.getDistribution(keys);
+    const total = Array.from(distribution.values()).reduce((sum, count) => sum + count, 0);
+    expect(total).toBe(20);
+    expect(Array.from(distribution.keys()).sort()).toEqual(['node-a', 'node-b']);
+  });
+
+  it('adding a node only remaps part of the keyspace', () => {
+    const keys = Array.from({ length: 500 }, (_, i) => `user:${i}`);
+    const before = new ConsistentHashRing(60);
+    before.addNode('node-a');
+    before.addNode('node-b');
+
+    const after = new ConsistentHashRing(60);
+    after.addNode('node-a');
+    after.addNode('node-b');
+    after.addNode('node-c');
+
+    let moved = 0;
+    for (const key of keys) {
+      if (before.getNode(key) !== after.getNode(key)) moved += 1;
+    }
+
+    expect(moved).toBeGreaterThan(0);
+    expect(moved).toBeLessThan(keys.length);
+  });
+
+  it('wraps around to the first node hash when needed', () => {
+    const ring = new ConsistentHashRing(1);
+    ring.addNode('node-a');
+    ring.addNode('node-b');
+    const result = ring.getNode('￿-wrap-check');
+    expect(result === 'node-a' || result === 'node-b').toBe(true);
+  });
+
+  it('handles stress-sized key batches', () => {
+    const ring = new ConsistentHashRing(100);
+    ring.addNode('node-a');
+    ring.addNode('node-b');
+    ring.addNode('node-c');
+    ring.addNode('node-d');
+
+    const keys = Array.from({ length: 5000 }, (_, i) => `session:${i}`);
+    const distribution = ring.getDistribution(keys);
+    const total = Array.from(distribution.values()).reduce((sum, count) => sum + count, 0);
+    expect(total).toBe(5000);
+    expect(distribution.size).toBe(4);
+  });
+});
+]=],
+  },
 }
 
 --- Deterministic challenge selection based on date.
