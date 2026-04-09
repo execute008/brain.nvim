@@ -7387,6 +7387,127 @@ describe('Consistent Hash Ring', () => {
 });
 ]=],
   },
+  {
+    name = "Rolling Median Stream",
+    difficulty = "medium",
+    stub = [==[
+/**
+ * Rolling Median Stream
+ *
+ * Implement a data structure that maintains the median of a growing stream of numbers.
+ *
+ * MedianFinder class:
+ * - addNum(num) — Inserts a number into the stream.
+ * - findMedian() — Returns the current median.
+ * - size() — Returns how many numbers have been added.
+ * - reset() — Clears all stored numbers.
+ *
+ * Requirements:
+ * - `findMedian()` should return the middle value for odd counts.
+ * - For even counts, return the average of the two middle values.
+ * - Duplicates and negative numbers must be handled correctly.
+ * - Calling `findMedian()` on an empty stream should throw Error('No numbers available').
+ *
+ * Bonus: Aim for O(log n) insertion time.
+ */
+
+export class MedianFinder {
+  addNum(num: number): void {
+    // YOUR CODE HERE
+  }
+
+  findMedian(): number {
+    // YOUR CODE HERE
+    return 0;
+  }
+
+  size(): number {
+    // YOUR CODE HERE
+    return 0;
+  }
+
+  reset(): void {
+    // YOUR CODE HERE
+  }
+}
+]==],
+    tests = [==[
+import { describe, it, expect } from 'vitest';
+import { MedianFinder } from './challenge';
+
+describe('Rolling Median Stream', () => {
+  it('throws when empty', () => {
+    const mf = new MedianFinder();
+    expect(() => mf.findMedian()).toThrow('No numbers available');
+  });
+
+  it('tracks a single number', () => {
+    const mf = new MedianFinder();
+    mf.addNum(5);
+    expect(mf.findMedian()).toBe(5);
+    expect(mf.size()).toBe(1);
+  });
+
+  it('returns average for even counts', () => {
+    const mf = new MedianFinder();
+    mf.addNum(10);
+    mf.addNum(20);
+    expect(mf.findMedian()).toBe(15);
+  });
+
+  it('returns middle value for odd counts', () => {
+    const mf = new MedianFinder();
+    [5, 1, 9].forEach(n => mf.addNum(n));
+    expect(mf.findMedian()).toBe(5);
+  });
+
+  it('handles negatives and duplicates', () => {
+    const mf = new MedianFinder();
+    [-5, -1, -1, -10, -5].forEach(n => mf.addNum(n));
+    expect(mf.findMedian()).toBe(-5);
+  });
+
+  it('updates median after each insertion', () => {
+    const mf = new MedianFinder();
+    const nums = [2, 7, 1, 8, 2, 8];
+    const medians = [2, 4.5, 2, 4.5, 2, 4.5];
+    nums.forEach((num, i) => {
+      mf.addNum(num);
+      expect(mf.findMedian()).toBe(medians[i]);
+    });
+  });
+
+  it('works with descending input', () => {
+    const mf = new MedianFinder();
+    [9, 8, 7, 6, 5].forEach(n => mf.addNum(n));
+    expect(mf.findMedian()).toBe(7);
+  });
+
+  it('reset clears the stream', () => {
+    const mf = new MedianFinder();
+    [1, 2, 3].forEach(n => mf.addNum(n));
+    mf.reset();
+    expect(mf.size()).toBe(0);
+    expect(() => mf.findMedian()).toThrow('No numbers available');
+  });
+
+  it('handles decimal medians exactly', () => {
+    const mf = new MedianFinder();
+    [1, 2, 3, 4].forEach(n => mf.addNum(n));
+    expect(mf.findMedian()).toBe(2.5);
+  });
+
+  it('stress: large ordered stream', () => {
+    const mf = new MedianFinder();
+    for (let i = 1; i <= 10001; i++) {
+      mf.addNum(i);
+    }
+    expect(mf.size()).toBe(10001);
+    expect(mf.findMedian()).toBe(5001);
+  });
+});
+]==],
+  },
 }
 
 --- Deterministic challenge selection based on date.
