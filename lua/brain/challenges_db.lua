@@ -7508,6 +7508,166 @@ describe('Rolling Median Stream', () => {
 });
 ]==],
   },
+  {
+    name = "Weighted Round Robin Load Balancer",
+    difficulty = "medium",
+    stub = [==[
+/**
+ * Weighted Round Robin Load Balancer
+ *
+ * Build a load balancer that distributes requests across servers according to
+ * their weights. A server with weight 3 should receive roughly three times as
+ * many requests as a server with weight 1 over a full scheduling cycle.
+ *
+ * Implement the WeightedRoundRobin class:
+ * - addServer(id: string, weight: number): void
+ * - removeServer(id: string): void
+ * - next(): string | null
+ * - reset(): void
+ * - size(): number
+ *
+ * Rules:
+ * - Ignore addServer calls with non-positive weights.
+ * - Re-adding an existing server should update its weight.
+ * - next() should return null when no servers are registered.
+ * - reset() should restart scheduling from a clean state using the current servers.
+ */
+
+export class WeightedRoundRobin {
+  addServer(id: string, weight: number): void {
+    // YOUR CODE HERE
+  }
+
+  removeServer(id: string): void {
+    // YOUR CODE HERE
+  }
+
+  next(): string | null {
+    // YOUR CODE HERE
+    return null;
+  }
+
+  reset(): void {
+    // YOUR CODE HERE
+  }
+
+  size(): number {
+    // YOUR CODE HERE
+    return 0;
+  }
+}
+]==],
+    tests = [==[
+import { describe, it, expect } from 'vitest';
+import { WeightedRoundRobin } from './challenge';
+
+describe('Weighted Round Robin Load Balancer', () => {
+  it('returns null when empty', () => {
+    const lb = new WeightedRoundRobin();
+    expect(lb.next()).toBeNull();
+    expect(lb.size()).toBe(0);
+  });
+
+  it('cycles evenly for equal weights', () => {
+    const lb = new WeightedRoundRobin();
+    lb.addServer('a', 1);
+    lb.addServer('b', 1);
+    lb.addServer('c', 1);
+
+    expect([lb.next(), lb.next(), lb.next(), lb.next(), lb.next(), lb.next()]).toEqual([
+      'a', 'b', 'c', 'a', 'b', 'c',
+    ]);
+  });
+
+  it('respects weight ratios over a full cycle', () => {
+    const lb = new WeightedRoundRobin();
+    lb.addServer('api-1', 3);
+    lb.addServer('api-2', 1);
+
+    expect([lb.next(), lb.next(), lb.next(), lb.next()]).toEqual([
+      'api-1', 'api-1', 'api-1', 'api-2',
+    ]);
+  });
+
+  it('ignores non-positive weights', () => {
+    const lb = new WeightedRoundRobin();
+    lb.addServer('bad-zero', 0);
+    lb.addServer('bad-negative', -2);
+    lb.addServer('good', 2);
+
+    expect(lb.size()).toBe(1);
+    expect([lb.next(), lb.next(), lb.next()]).toEqual(['good', 'good', 'good']);
+  });
+
+  it('updates the weight when re-adding an existing server', () => {
+    const lb = new WeightedRoundRobin();
+    lb.addServer('a', 1);
+    lb.addServer('b', 1);
+    lb.addServer('a', 3);
+
+    expect(lb.size()).toBe(2);
+    expect([lb.next(), lb.next(), lb.next(), lb.next()]).toEqual(['a', 'a', 'a', 'b']);
+  });
+
+  it('removes servers cleanly mid-cycle', () => {
+    const lb = new WeightedRoundRobin();
+    lb.addServer('a', 2);
+    lb.addServer('b', 1);
+
+    expect(lb.next()).toBe('a');
+    lb.removeServer('a');
+    expect([lb.next(), lb.next(), lb.next()]).toEqual(['b', 'b', 'b']);
+  });
+
+  it('reset restarts scheduling from the beginning', () => {
+    const lb = new WeightedRoundRobin();
+    lb.addServer('x', 2);
+    lb.addServer('y', 1);
+
+    expect([lb.next(), lb.next()]).toEqual(['x', 'x']);
+    lb.reset();
+    expect([lb.next(), lb.next(), lb.next()]).toEqual(['x', 'x', 'y']);
+  });
+
+  it('supports removing unknown servers without throwing', () => {
+    const lb = new WeightedRoundRobin();
+    lb.addServer('only', 1);
+    lb.removeServer('missing');
+    expect(lb.next()).toBe('only');
+  });
+
+  it('preserves insertion order within a cycle', () => {
+    const lb = new WeightedRoundRobin();
+    lb.addServer('edge', 2);
+    lb.addServer('core', 2);
+    lb.addServer('db', 1);
+
+    expect([lb.next(), lb.next(), lb.next(), lb.next(), lb.next()]).toEqual([
+      'edge', 'edge', 'core', 'core', 'db',
+    ]);
+  });
+
+  it('stress: distribution matches total weights over many cycles', () => {
+    const lb = new WeightedRoundRobin();
+    lb.addServer('a', 4);
+    lb.addServer('b', 3);
+    lb.addServer('c', 2);
+    lb.addServer('d', 1);
+
+    const counts = new Map<string, number>();
+    for (let i = 0; i < 1000; i++) {
+      const server = lb.next();
+      counts.set(server!, (counts.get(server!) ?? 0) + 1);
+    }
+
+    expect(counts.get('a')).toBe(400);
+    expect(counts.get('b')).toBe(300);
+    expect(counts.get('c')).toBe(200);
+    expect(counts.get('d')).toBe(100);
+  });
+});
+]==],
+  },
 }
 
 --- Deterministic challenge selection based on date.
