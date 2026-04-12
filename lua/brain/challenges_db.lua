@@ -7668,6 +7668,129 @@ describe('Weighted Round Robin Load Balancer', () => {
 });
 ]==],
   },
+  {
+    name = "Time-Based Key-Value Store",
+    difficulty = "medium",
+    stub = [==[
+/**
+ * Time-Based Key-Value Store
+ *
+ * Build a data structure that stores multiple values for the same key,
+ * each tagged with a timestamp.
+ *
+ * Implement the TimeMap class:
+ * - set(key: string, value: string, timestamp: number): void
+ *   Store the value for the key at the given timestamp.
+ * - get(key: string, timestamp: number): string
+ *   Return the value associated with the largest timestamp that is less than
+ *   or equal to the given timestamp. If there is no such value, return ''.
+ *
+ * Timestamps for each key are inserted in strictly increasing order.
+ * Aim for O(log n) lookups per key.
+ */
+
+export class TimeMap {
+  set(key: string, value: string, timestamp: number): void {
+    // YOUR CODE HERE
+  }
+
+  get(key: string, timestamp: number): string {
+    // YOUR CODE HERE
+    return '';
+  }
+}
+]==],
+    tests = [==[
+import { describe, it, expect } from 'vitest';
+import { TimeMap } from './challenge';
+
+describe('Time-Based Key-Value Store', () => {
+  it('returns exact timestamp matches', () => {
+    const tm = new TimeMap();
+    tm.set('foo', 'bar', 1);
+    expect(tm.get('foo', 1)).toBe('bar');
+  });
+
+  it('returns the closest earlier value', () => {
+    const tm = new TimeMap();
+    tm.set('foo', 'bar', 1);
+    tm.set('foo', 'bar2', 4);
+    expect(tm.get('foo', 3)).toBe('bar');
+    expect(tm.get('foo', 4)).toBe('bar2');
+    expect(tm.get('foo', 10)).toBe('bar2');
+  });
+
+  it('returns empty string before the first timestamp', () => {
+    const tm = new TimeMap();
+    tm.set('foo', 'bar', 5);
+    expect(tm.get('foo', 4)).toBe('');
+  });
+
+  it('handles multiple keys independently', () => {
+    const tm = new TimeMap();
+    tm.set('foo', 'a', 1);
+    tm.set('bar', 'x', 2);
+    tm.set('foo', 'b', 3);
+    expect(tm.get('foo', 2)).toBe('a');
+    expect(tm.get('bar', 2)).toBe('x');
+  });
+
+  it('returns empty string for unknown keys', () => {
+    const tm = new TimeMap();
+    expect(tm.get('missing', 100)).toBe('');
+  });
+
+  it('supports empty string values', () => {
+    const tm = new TimeMap();
+    tm.set('flag', '', 2);
+    tm.set('flag', 'on', 5);
+    expect(tm.get('flag', 2)).toBe('');
+    expect(tm.get('flag', 3)).toBe('');
+    expect(tm.get('flag', 5)).toBe('on');
+  });
+
+  it('works with sparse timestamps', () => {
+    const tm = new TimeMap();
+    tm.set('foo', 'start', 1);
+    tm.set('foo', 'middle', 100);
+    tm.set('foo', 'end', 1000);
+    expect(tm.get('foo', 999)).toBe('middle');
+  });
+
+  it('keeps the latest value when many versions exist', () => {
+    const tm = new TimeMap();
+    for (let i = 1; i <= 50; i++) {
+      tm.set('k', `v${i}`, i);
+    }
+    expect(tm.get('k', 50)).toBe('v50');
+    expect(tm.get('k', 37)).toBe('v37');
+  });
+
+  it('handles interleaved writes across keys', () => {
+    const tm = new TimeMap();
+    tm.set('a', 'a1', 1);
+    tm.set('b', 'b1', 2);
+    tm.set('a', 'a2', 3);
+    tm.set('b', 'b2', 4);
+    expect(tm.get('a', 4)).toBe('a2');
+    expect(tm.get('b', 3)).toBe('b1');
+  });
+
+  it('stress test: binary search boundary conditions', () => {
+    const tm = new TimeMap();
+    for (let i = 1; i <= 1000; i++) {
+      tm.set('load', `value-${i}`, i * 10);
+    }
+
+    expect(tm.get('load', 1)).toBe('');
+    expect(tm.get('load', 10)).toBe('value-1');
+    expect(tm.get('load', 5555)).toBe('value-555');
+    expect(tm.get('load', 10000)).toBe('value-1000');
+    expect(tm.get('load', 10001)).toBe('value-1000');
+  });
+});
+]==],
+  },
 }
 
 --- Deterministic challenge selection based on date.
