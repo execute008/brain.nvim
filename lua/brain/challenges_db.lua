@@ -7791,6 +7791,173 @@ describe('Time-Based Key-Value Store', () => {
 });
 ]==],
   },
+
+  {
+    name = "Workflow DAG Planner",
+    difficulty = "hard",
+    stub = [==[
+/**
+ * Workflow DAG Planner
+ *
+ * You are given workflow steps where each step has a unique id and a list of
+ * dependencies that must run before it.
+ *
+ * Build an execution plan where each inner array contains steps that can run in
+ * parallel. The result must be topologically sorted, meaning every step appears
+ * only after all of its dependencies were scheduled in an earlier batch.
+ *
+ * Requirements:
+ * - Throw an error if a step id is duplicated.
+ * - Throw an error if a dependency points to an unknown step.
+ * - Throw an error if the workflow contains a cycle.
+ * - Preserve the original input order for steps that become available in the
+ *   same batch.
+ *
+ * Example:
+ * planWorkflow([
+ *   { id: 'lint', deps: [] },
+ *   { id: 'test', deps: ['lint'] },
+ *   { id: 'build', deps: ['lint'] },
+ *   { id: 'deploy', deps: ['test', 'build'] },
+ * ])
+ * // => [['lint'], ['test', 'build'], ['deploy']]
+ */
+
+export interface WorkflowStep {
+  id: string;
+  deps: string[];
+}
+
+export function planWorkflow(steps: WorkflowStep[]): string[][] {
+  // YOUR CODE HERE
+  return [];
+}
+]==],
+    tests = [==[
+import { describe, it, expect } from 'vitest';
+import { planWorkflow, type WorkflowStep } from './challenge';
+
+describe('Workflow DAG Planner', () => {
+  it('plans a simple linear workflow', () => {
+    const steps: WorkflowStep[] = [
+      { id: 'lint', deps: [] },
+      { id: 'test', deps: ['lint'] },
+      { id: 'deploy', deps: ['test'] },
+    ];
+
+    expect(planWorkflow(steps)).toEqual([['lint'], ['test'], ['deploy']]);
+  });
+
+  it('groups parallelizable steps into the same batch', () => {
+    const steps: WorkflowStep[] = [
+      { id: 'lint', deps: [] },
+      { id: 'typecheck', deps: [] },
+      { id: 'test', deps: ['lint'] },
+      { id: 'build', deps: ['lint', 'typecheck'] },
+    ];
+
+    expect(planWorkflow(steps)).toEqual([
+      ['lint', 'typecheck'],
+      ['test', 'build'],
+    ]);
+  });
+
+  it('preserves input order inside the same batch', () => {
+    const steps: WorkflowStep[] = [
+      { id: 'assets', deps: [] },
+      { id: 'schema', deps: [] },
+      { id: 'docs', deps: [] },
+      { id: 'package', deps: ['assets', 'schema', 'docs'] },
+    ];
+
+    expect(planWorkflow(steps)).toEqual([
+      ['assets', 'schema', 'docs'],
+      ['package'],
+    ]);
+  });
+
+  it('handles multiple disconnected subgraphs', () => {
+    const steps: WorkflowStep[] = [
+      { id: 'a1', deps: [] },
+      { id: 'a2', deps: ['a1'] },
+      { id: 'b1', deps: [] },
+      { id: 'b2', deps: ['b1'] },
+    ];
+
+    expect(planWorkflow(steps)).toEqual([
+      ['a1', 'b1'],
+      ['a2', 'b2'],
+    ]);
+  });
+
+  it('supports an empty workflow', () => {
+    expect(planWorkflow([])).toEqual([]);
+  });
+
+  it('supports a single independent step', () => {
+    expect(planWorkflow([{ id: 'ship', deps: [] }])).toEqual([['ship']]);
+  });
+
+  it('throws on duplicate step ids', () => {
+    const steps: WorkflowStep[] = [
+      { id: 'build', deps: [] },
+      { id: 'build', deps: [] },
+    ];
+
+    expect(() => planWorkflow(steps)).toThrow(/duplicate/i);
+  });
+
+  it('throws on unknown dependencies', () => {
+    const steps: WorkflowStep[] = [
+      { id: 'deploy', deps: ['build'] },
+    ];
+
+    expect(() => planWorkflow(steps)).toThrow(/unknown dependency/i);
+  });
+
+  it('throws on cycles', () => {
+    const steps: WorkflowStep[] = [
+      { id: 'a', deps: ['c'] },
+      { id: 'b', deps: ['a'] },
+      { id: 'c', deps: ['b'] },
+    ];
+
+    expect(() => planWorkflow(steps)).toThrow(/cycle/i);
+  });
+
+  it('handles a larger workflow with several levels', () => {
+    const steps: WorkflowStep[] = [
+      { id: 'lint', deps: [] },
+      { id: 'typecheck', deps: [] },
+      { id: 'unit', deps: ['lint'] },
+      { id: 'integration', deps: ['lint'] },
+      { id: 'bundle', deps: ['typecheck'] },
+      { id: 'e2e', deps: ['unit', 'integration', 'bundle'] },
+      { id: 'deploy', deps: ['e2e'] },
+    ];
+
+    expect(planWorkflow(steps)).toEqual([
+      ['lint', 'typecheck'],
+      ['unit', 'integration', 'bundle'],
+      ['e2e'],
+      ['deploy'],
+    ]);
+  });
+
+  it('does not mutate the original input', () => {
+    const steps: WorkflowStep[] = [
+      { id: 'lint', deps: [] },
+      { id: 'test', deps: ['lint'] },
+    ];
+    const snapshot = JSON.parse(JSON.stringify(steps));
+
+    planWorkflow(steps);
+
+    expect(steps).toEqual(snapshot);
+  });
+});
+]==],
+  },
 }
 
 --- Deterministic challenge selection based on date.
