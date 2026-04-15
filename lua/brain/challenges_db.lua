@@ -7958,6 +7958,232 @@ describe('Workflow DAG Planner', () => {
 });
 ]==],
   },
+
+  {
+    name = "Exponential Backoff Retry",
+    difficulty = "medium",
+    stub = [==[
+/**
+ * Exponential Backoff Retry
+ *
+ * Implement a retry helper for flaky async operations.
+ *
+ * retry(operation, options):
+ * - Re-runs `operation` until it resolves or retry attempts are exhausted.
+ * - Wait between retries using exponential backoff:
+ *     delay = min(maxDelay, baseDelay * factor^(attempt - 1))
+ *   where attempt starts at 1 for the first retry after the initial failure.
+ * - If `jitter` is true, randomize each delay in the range [0, computedDelay].
+ * - If `shouldRetry(error, attempt)` returns false, stop immediately and reject.
+ * - Call `onRetry(error, attempt, delay)` before waiting for the next attempt.
+ *
+ * Notes:
+ * - `retries` is the maximum number of retries AFTER the initial attempt.
+ * - If all attempts fail, reject with the last error.
+ * - The helper must preserve the resolved value from the successful attempt.
+ */
+
+export interface RetryOptions {
+  retries: number;
+  baseDelay: number;
+  factor?: number;
+  maxDelay?: number;
+  jitter?: boolean;
+  shouldRetry?: (error: unknown, attempt: number) => boolean;
+  onRetry?: (error: unknown, attempt: number, delay: number) => void;
+}
+
+export async function retry<T>(
+  operation: () => Promise<T>,
+  options: RetryOptions
+): Promise<T> {
+  // YOUR CODE HERE
+  return operation();
+}
+]==],
+    tests = [==[
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { retry } from './challenge';
+
+describe('Exponential Backoff Retry', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+  });
+
+  it('resolves immediately when the first attempt succeeds', async () => {
+    const operation = vi.fn().mockResolvedValue('ok');
+
+    const promise = retry(operation, { retries: 3, baseDelay: 100 });
+    await expect(promise).resolves.toBe('ok');
+    expect(operation).toHaveBeenCalledTimes(1);
+  });
+
+  it('retries until the operation succeeds', async () => {
+    const operation = vi.fn()
+      .mockRejectedValueOnce(new Error('fail-1'))
+      .mockRejectedValueOnce(new Error('fail-2'))
+      .mockResolvedValue('done');
+
+    const promise = retry(operation, { retries: 3, baseDelay: 100 });
+    await vi.advanceTimersByTimeAsync(100 + 200);
+
+    await expect(promise).resolves.toBe('done');
+    expect(operation).toHaveBeenCalledTimes(3);
+  });
+
+  it('rejects with the last error when retries are exhausted', async () => {
+    const operation = vi.fn().mockRejectedValue(new Error('still broken'));
+
+    const promise = retry(operation, { retries: 2, baseDelay: 50 });
+    await vi.advanceTimersByTimeAsync(50 + 100);
+
+    await expect(promise).rejects.toThrow('still broken');
+    expect(operation).toHaveBeenCalledTimes(3);
+  });
+
+  it('uses exponential delays with the default factor of 2', async () => {
+    const operation = vi.fn()
+      .mockRejectedValueOnce(new Error('a'))
+      .mockRejectedValueOnce(new Error('b'))
+      .mockResolvedValue('ok');
+
+    const promise = retry(operation, { retries: 3, baseDelay: 25 });
+
+    await vi.advanceTimersByTimeAsync(24);
+    expect(operation).toHaveBeenCalledTimes(1);
+
+    await vi.advanceTimersByTimeAsync(1);
+    expect(operation).toHaveBeenCalledTimes(2);
+
+    await vi.advanceTimersByTimeAsync(49);
+    expect(operation).toHaveBeenCalledTimes(2);
+
+    await vi.advanceTimersByTimeAsync(1);
+    expect(operation).toHaveBeenCalledTimes(3);
+    await expect(promise).resolves.toBe('ok');
+  });
+
+  it('respects a custom factor and maxDelay cap', async () => {
+    const operation = vi.fn()
+      .mockRejectedValueOnce(new Error('x'))
+      .mockRejectedValueOnce(new Error('y'))
+      .mockRejectedValueOnce(new Error('z'))
+      .mockResolvedValue('ok');
+
+    const onRetry = vi.fn();
+    const promise = retry(operation, {
+      retries: 4,
+      baseDelay: 100,
+      factor: 3,
+      maxDelay: 250,
+      onRetry,
+    });
+
+    await vi.advanceTimersByTimeAsync(100 + 250 + 250);
+    await expect(promise).resolves.toBe('ok');
+    expect(onRetry.mock.calls.map(([, , delay]) => delay)).toEqual([100, 250, 250]);
+  });
+
+  it('supports full jitter', async () => {
+    const operation = vi.fn()
+      .mockRejectedValueOnce(new Error('nope'))
+      .mockResolvedValue('ok');
+
+    const onRetry = vi.fn();
+    const promise = retry(operation, {
+      retries: 2,
+      baseDelay: 100,
+      jitter: true,
+      onRetry,
+    });
+
+    await vi.advanceTimersByTimeAsync(49);
+    expect(operation).toHaveBeenCalledTimes(1);
+
+    await vi.advanceTimersByTimeAsync(1);
+    expect(operation).toHaveBeenCalledTimes(2);
+    await expect(promise).resolves.toBe('ok');
+    expect(onRetry).toHaveBeenCalledWith(expect.any(Error), 1, 50);
+  });
+
+  it('stops early when shouldRetry returns false', async () => {
+    const operation = vi.fn().mockRejectedValue(new Error('fatal'));
+    const shouldRetry = vi.fn().mockReturnValue(false);
+
+    const promise = retry(operation, {
+      retries: 5,
+      baseDelay: 100,
+      shouldRetry,
+    });
+
+    await expect(promise).rejects.toThrow('fatal');
+    expect(operation).toHaveBeenCalledTimes(1);
+    expect(shouldRetry).toHaveBeenCalledWith(expect.any(Error), 1);
+  });
+
+  it('calls onRetry before each wait', async () => {
+    const operation = vi.fn()
+      .mockRejectedValueOnce(new Error('first'))
+      .mockResolvedValue('done');
+    const onRetry = vi.fn();
+
+    const promise = retry(operation, {
+      retries: 2,
+      baseDelay: 75,
+      onRetry,
+    });
+
+    expect(onRetry).toHaveBeenCalledWith(expect.any(Error), 1, 75);
+    await vi.advanceTimersByTimeAsync(75);
+    await expect(promise).resolves.toBe('done');
+  });
+
+  it('supports zero retries', async () => {
+    const operation = vi.fn().mockRejectedValue(new Error('once only'));
+
+    const promise = retry(operation, { retries: 0, baseDelay: 100 });
+    await expect(promise).rejects.toThrow('once only');
+    expect(operation).toHaveBeenCalledTimes(1);
+  });
+
+  it('handles synchronous rejections from async functions consistently', async () => {
+    const operation = vi.fn(async () => {
+      throw new Error('sync-ish');
+    });
+
+    const promise = retry(operation, { retries: 1, baseDelay: 20 });
+    await vi.advanceTimersByTimeAsync(20);
+    await expect(promise).rejects.toThrow('sync-ish');
+    expect(operation).toHaveBeenCalledTimes(2);
+  });
+
+  it('stress: succeeds after many retries', async () => {
+    let attempts = 0;
+    const operation = vi.fn(async () => {
+      attempts++;
+      if (attempts < 6) throw new Error(`fail-${attempts}`);
+      return attempts;
+    });
+
+    const promise = retry(operation, {
+      retries: 10,
+      baseDelay: 10,
+      maxDelay: 40,
+    });
+
+    await vi.advanceTimersByTimeAsync(10 + 20 + 40 + 40 + 40);
+    await expect(promise).resolves.toBe(6);
+    expect(operation).toHaveBeenCalledTimes(6);
+  });
+});
+]==],
+  },
 }
 
 --- Deterministic challenge selection based on date.
