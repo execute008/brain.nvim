@@ -8184,6 +8184,151 @@ describe('Exponential Backoff Retry', () => {
 });
 ]==],
   },
+
+  {
+    name = "Union-Find Connectivity",
+    difficulty = "medium",
+    stub = [==[
+/**
+ * Union-Find Connectivity
+ *
+ * Implement a Disjoint Set Union (Union-Find) data structure.
+ *
+ * Requirements:
+ * - `union(a, b)` merges the sets containing `a` and `b`
+ * - `connected(a, b)` returns true if both values are in the same set
+ * - `componentSize(x)` returns the size of the set containing `x`
+ * - `count()` returns the current number of connected components
+ *
+ * Constraints:
+ * - Values are integers in the range [0, n - 1]
+ * - Use path compression and union by size or rank
+ * - Repeated unions should not incorrectly change the component count
+ */
+
+export class UnionFind {
+  constructor(n: number) {
+    // YOUR CODE HERE
+  }
+
+  union(a: number, b: number): boolean {
+    // YOUR CODE HERE
+    return false;
+  }
+
+  connected(a: number, b: number): boolean {
+    // YOUR CODE HERE
+    return false;
+  }
+
+  componentSize(x: number): number {
+    // YOUR CODE HERE
+    return 0;
+  }
+
+  count(): number {
+    // YOUR CODE HERE
+    return 0;
+  }
+}
+]==],
+    tests = [==[
+import { describe, it, expect } from 'vitest';
+import { UnionFind } from './challenge';
+
+describe('Union-Find Connectivity', () => {
+  it('starts with each node in its own component', () => {
+    const uf = new UnionFind(5);
+    expect(uf.count()).toBe(5);
+    expect(uf.componentSize(0)).toBe(1);
+    expect(uf.componentSize(4)).toBe(1);
+  });
+
+  it('connects two nodes with union', () => {
+    const uf = new UnionFind(4);
+    expect(uf.union(0, 1)).toBe(true);
+    expect(uf.connected(0, 1)).toBe(true);
+    expect(uf.count()).toBe(3);
+  });
+
+  it('merges chains transitively', () => {
+    const uf = new UnionFind(5);
+    uf.union(0, 1);
+    uf.union(1, 2);
+    expect(uf.connected(0, 2)).toBe(true);
+    expect(uf.connected(0, 3)).toBe(false);
+  });
+
+  it('returns false when unioning nodes already connected', () => {
+    const uf = new UnionFind(3);
+    expect(uf.union(0, 1)).toBe(true);
+    expect(uf.union(1, 0)).toBe(false);
+    expect(uf.count()).toBe(2);
+  });
+
+  it('tracks component sizes after multiple merges', () => {
+    const uf = new UnionFind(6);
+    uf.union(0, 1);
+    uf.union(2, 3);
+    uf.union(1, 2);
+    expect(uf.componentSize(0)).toBe(4);
+    expect(uf.componentSize(3)).toBe(4);
+    expect(uf.componentSize(4)).toBe(1);
+  });
+
+  it('self union does not change the structure', () => {
+    const uf = new UnionFind(2);
+    expect(uf.union(1, 1)).toBe(false);
+    expect(uf.connected(1, 1)).toBe(true);
+    expect(uf.count()).toBe(2);
+  });
+
+  it('handles repeated connectivity checks after path compression', () => {
+    const uf = new UnionFind(7);
+    uf.union(0, 1);
+    uf.union(1, 2);
+    uf.union(2, 3);
+    uf.union(3, 4);
+    expect(uf.connected(0, 4)).toBe(true);
+    expect(uf.connected(4, 0)).toBe(true);
+    expect(uf.componentSize(2)).toBe(5);
+  });
+
+  it('keeps separate components independent', () => {
+    const uf = new UnionFind(8);
+    uf.union(0, 1);
+    uf.union(2, 3);
+    uf.union(4, 5);
+    expect(uf.connected(0, 2)).toBe(false);
+    expect(uf.connected(2, 4)).toBe(false);
+    expect(uf.count()).toBe(5);
+  });
+
+  it('can merge two larger components', () => {
+    const uf = new UnionFind(8);
+    uf.union(0, 1);
+    uf.union(1, 2);
+    uf.union(4, 5);
+    uf.union(5, 6);
+    expect(uf.union(2, 6)).toBe(true);
+    expect(uf.connected(0, 4)).toBe(true);
+    expect(uf.componentSize(6)).toBe(6);
+    expect(uf.count()).toBe(3);
+  });
+
+  it('stress test with many unions', () => {
+    const n = 1000;
+    const uf = new UnionFind(n);
+    for (let i = 1; i < n; i++) {
+      uf.union(0, i);
+    }
+    expect(uf.count()).toBe(1);
+    expect(uf.componentSize(999)).toBe(1000);
+    expect(uf.connected(123, 987)).toBe(true);
+  });
+});
+]==],
+  },
 }
 
 --- Deterministic challenge selection based on date.
