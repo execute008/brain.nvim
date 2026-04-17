@@ -8329,6 +8329,171 @@ describe('Union-Find Connectivity', () => {
 });
 ]==],
   },
+
+  {
+    name = "LFU Cache",
+    difficulty = "hard",
+    stub = [==[
+/**
+ * LFU Cache
+ *
+ * Design and implement an LFU (Least Frequently Used) cache.
+ *
+ * The cache evicts the key with the lowest access frequency when it reaches capacity.
+ * If multiple keys share the same frequency, evict the least recently used one among them.
+ *
+ * Implement the LFUCache class:
+ * - constructor(capacity: number)
+ * - get(key: number): number — Return the value if the key exists, otherwise -1.
+ * - put(key: number, value: number): void — Insert or update the value.
+ * - getMinFrequency(): number — Return the current minimum frequency in the cache, or 0 if empty.
+ *
+ * Both get and put should run in O(1) average time.
+ */
+
+export class LFUCache {
+  constructor(capacity: number) {
+    // YOUR CODE HERE
+  }
+
+  get(key: number): number {
+    // YOUR CODE HERE
+    return -1;
+  }
+
+  put(key: number, value: number): void {
+    // YOUR CODE HERE
+  }
+
+  getMinFrequency(): number {
+    // YOUR CODE HERE
+    return 0;
+  }
+}
+]==],
+    tests = [==[
+import { describe, it, expect } from 'vitest';
+import { LFUCache } from './challenge';
+
+describe('LFU Cache', () => {
+  it('returns -1 for missing keys', () => {
+    const cache = new LFUCache(2);
+    expect(cache.get(123)).toBe(-1);
+  });
+
+  it('stores and retrieves values', () => {
+    const cache = new LFUCache(2);
+    cache.put(1, 10);
+    cache.put(2, 20);
+    expect(cache.get(1)).toBe(10);
+    expect(cache.get(2)).toBe(20);
+  });
+
+  it('evicts the least frequently used key', () => {
+    const cache = new LFUCache(2);
+    cache.put(1, 1);
+    cache.put(2, 2);
+    cache.get(1);
+    cache.put(3, 3);
+    expect(cache.get(1)).toBe(1);
+    expect(cache.get(2)).toBe(-1);
+    expect(cache.get(3)).toBe(3);
+  });
+
+  it('breaks ties by least recently used within the same frequency', () => {
+    const cache = new LFUCache(2);
+    cache.put(1, 1);
+    cache.put(2, 2);
+    cache.put(3, 3);
+    expect(cache.get(1)).toBe(-1);
+    expect(cache.get(2)).toBe(2);
+    expect(cache.get(3)).toBe(3);
+  });
+
+  it('updating an existing key changes the value and frequency', () => {
+    const cache = new LFUCache(2);
+    cache.put(1, 1);
+    cache.put(2, 2);
+    cache.put(1, 10);
+    cache.put(3, 3);
+    expect(cache.get(1)).toBe(10);
+    expect(cache.get(2)).toBe(-1);
+    expect(cache.get(3)).toBe(3);
+  });
+
+  it('capacity 0 never stores anything', () => {
+    const cache = new LFUCache(0);
+    cache.put(1, 1);
+    cache.put(2, 2);
+    expect(cache.get(1)).toBe(-1);
+    expect(cache.getMinFrequency()).toBe(0);
+  });
+
+  it('tracks minimum frequency correctly', () => {
+    const cache = new LFUCache(3);
+    cache.put(1, 1);
+    cache.put(2, 2);
+    cache.put(3, 3);
+    expect(cache.getMinFrequency()).toBe(1);
+    cache.get(1);
+    cache.get(1);
+    cache.get(2);
+    expect(cache.getMinFrequency()).toBe(1);
+    cache.put(4, 4);
+    expect(cache.get(3)).toBe(-1);
+    expect(cache.getMinFrequency()).toBe(1);
+  });
+
+  it('keeps newer low-frequency entries over older ones on ties', () => {
+    const cache = new LFUCache(3);
+    cache.put(1, 1);
+    cache.put(2, 2);
+    cache.put(3, 3);
+    cache.get(1);
+    cache.get(2);
+    cache.put(4, 4);
+    expect(cache.get(3)).toBe(-1);
+    expect(cache.get(4)).toBe(4);
+  });
+
+  it('handles repeated gets without corrupting eviction order', () => {
+    const cache = new LFUCache(2);
+    cache.put(1, 1);
+    cache.put(2, 2);
+    for (let i = 0; i < 5; i++) {
+      expect(cache.get(1)).toBe(1);
+    }
+    cache.put(3, 3);
+    expect(cache.get(1)).toBe(1);
+    expect(cache.get(2)).toBe(-1);
+    expect(cache.get(3)).toBe(3);
+  });
+
+  it('stress test with many inserts and hot keys', () => {
+    const cache = new LFUCache(50);
+    for (let i = 0; i < 50; i++) {
+      cache.put(i, i * 10);
+    }
+    for (let i = 0; i < 10; i++) {
+      for (let j = 0; j < 20; j++) {
+        expect(cache.get(j)).toBe(j * 10);
+      }
+    }
+    for (let i = 50; i < 100; i++) {
+      cache.put(i, i * 10);
+    }
+    for (let i = 0; i < 20; i++) {
+      expect(cache.get(i)).toBe(i * 10);
+    }
+    let evicted = 0;
+    for (let i = 20; i < 50; i++) {
+      if (cache.get(i) === -1) evicted++;
+    }
+    expect(evicted).toBeGreaterThan(0);
+  });
+});
+]==],
+  },
 }
 
 --- Deterministic challenge selection based on date.
