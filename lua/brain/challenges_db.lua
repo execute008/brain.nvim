@@ -8494,6 +8494,134 @@ describe('LFU Cache', () => {
 });
 ]==],
   },
+  {
+    name = "Two Sum",
+    difficulty = "easy",
+    stub = [==[
+/**
+ * Two Sum
+ *
+ * Given an array of integers and a target sum, return the indices of two numbers
+ * that add up to the target. You may assume each input has exactly one solution,
+ * and you may not use the same element twice.
+ *
+ * Return the indices as [index1, index2] where index1 < index2.
+ *
+ * Constraint: Solve in O(n) time using a hash map.
+ *
+ * Example: twoSum([2, 7, 11, 15], 9) => [0, 1]
+ *
+ * Bonus: Implement twoSumSorted for a sorted array using two pointers in O(n) time, O(1) space.
+ */
+
+export function twoSum(nums: number[], target: number): [number, number] | null {
+  // YOUR CODE HERE
+  return null;
+}
+
+/**
+ * Bonus: Two Sum for sorted arrays — use two pointers for O(1) space.
+ */
+export function twoSumSorted(nums: number[], target: number): [number, number] | null {
+  // YOUR CODE HERE
+  return null;
+}
+]==],
+    tests = [==[
+import { describe, it, expect } from 'vitest';
+import { twoSum, twoSumSorted } from './challenge';
+
+describe('Two Sum', () => {
+  it('finds pair at beginning', () => {
+    expect(twoSum([2, 7, 11, 15], 9)).toEqual([0, 1]);
+  });
+
+  it('finds pair at end', () => {
+    expect(twoSum([3, 2, 4], 6)).toEqual([1, 2]);
+  });
+
+  it('negative numbers', () => {
+    expect(twoSum([-1, -2, -3, -4, -5], -8)).toEqual([2, 4]);
+  });
+
+  it('zero target', () => {
+    expect(twoSum([-3, 4, 3, 0], 0)).toEqual([0, 2]);
+  });
+
+  it('duplicate values at different indices', () => {
+    expect(twoSum([3, 3], 6)).toEqual([0, 1]);
+  });
+
+  it('no solution returns null', () => {
+    expect(twoSum([1, 2, 3], 10)).toBe(null);
+  });
+
+  it('large array with solution at end', () => {
+    const arr = [1, 2, 3, 4, 5, 6, 7, 8, 9, 100];
+    expect(twoSum(arr, 109)).toEqual([8, 9]);
+  });
+
+  it('pair with zero', () => {
+    expect(twoSum([0, 4, 3, 0], 0)).toEqual([0, 3]);
+  });
+
+  it('single pair in array', () => {
+    expect(twoSum([5, 75, 25], 100)).toEqual([1, 2]);
+  });
+
+  it('mixed positive and negative', () => {
+    expect(twoSum([10, -5, 20, -10, 5], 0)).toEqual([1, 4]);
+  });
+
+  it('stress: large array', () => {
+    const arr = Array.from({ length: 10000 }, (_, i) => i);
+    arr[5000] = 2500;
+    arr[7500] = 2500;
+    expect(twoSum(arr, 5000)).toEqual([5000, 7500]);
+  });
+
+  it('same value used once only', () => {
+    // Confirm we don't use the same index twice
+    expect(twoSum([3, 2, 4], 6)).not.toEqual([2, 2]);
+  });
+});
+
+describe('Two Sum Sorted (Bonus)', () => {
+  it('finds pair in sorted array', () => {
+    expect(twoSumSorted([1, 2, 3, 4, 6], 6)).toEqual([1, 3]);
+  });
+
+  it('pair at boundaries', () => {
+    expect(twoSumSorted([1, 3, 5, 7], 8)).toEqual([0, 3]);
+  });
+
+  it('negative sorted array', () => {
+    expect(twoSumSorted([-10, -5, -2, 0, 3], -7)).toEqual([1, 2]);
+  });
+
+  it('duplicates', () => {
+    expect(twoSumSorted([2, 2, 3, 5], 4)).toEqual([0, 1]);
+  });
+
+  it('no solution', () => {
+    expect(twoSumSorted([1, 2, 3], 10)).toBe(null);
+  });
+
+  it('adjacent pair', () => {
+    expect(twoSumSorted([1, 3, 6, 9], 9)).toEqual([1, 2]);
+  });
+
+  it('large sorted array', () => {
+    const arr = Array.from({ length: 5000 }, (_, i) => i * 2);
+    expect(twoSumSorted(arr, 9996)).toEqual([2499, 2500]);
+  });
+
+  it('zero sum', () => {
+    expect(twoSumSorted([-5, -2, 0, 2, 5], 0)).toEqual([1, 3]);
+  });
+});
+]==],
+  },
 }
 
 --- Deterministic challenge selection based on date.
