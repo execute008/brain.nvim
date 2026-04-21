@@ -8622,6 +8622,213 @@ describe('Two Sum Sorted (Bonus)', () => {
 });
 ]==],
   },
+
+  {
+    name = "Keyed Request Coalescer",
+    difficulty = "medium",
+    stub = [==[
+/**
+ * Keyed Request Coalescer
+ *
+ * Build a utility that deduplicates concurrent async requests by key.
+ *
+ * Requirements:
+ * - If multiple calls with the same key happen while one request is already running,
+ *   they must all share the same in-flight Promise.
+ * - Successful results should be cached for `ttlMs` milliseconds.
+ * - Failed requests must NOT be cached.
+ * - `clear(key)` removes the cached value and any in-flight entry for that key.
+ * - `clearAll()` removes all cached and in-flight entries.
+ */
+
+export class RequestCoalescer<K, V> {
+  constructor(private readonly ttlMs: number = 0) {
+    // YOUR CODE HERE
+  }
+
+  run(key: K, loader: () => Promise<V>): Promise<V> {
+    // YOUR CODE HERE
+    return Promise.reject(new Error('Not implemented'));
+  }
+
+  clear(key: K): void {
+    // YOUR CODE HERE
+  }
+
+  clearAll(): void {
+    // YOUR CODE HERE
+  }
+}
+]==],
+    tests = [==[
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { RequestCoalescer } from './challenge';
+
+describe('Keyed Request Coalescer', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it('shares one in-flight promise for the same key', async () => {
+    const loader = vi.fn(async () => {
+      await Promise.resolve();
+      return 'done';
+    });
+    const coalescer = new RequestCoalescer<string, string>(1000);
+
+    const a = coalescer.run('user:1', loader);
+    const b = coalescer.run('user:1', loader);
+
+    expect(loader).toHaveBeenCalledTimes(1);
+    await expect(Promise.all([a, b])).resolves.toEqual(['done', 'done']);
+  });
+
+  it('runs loaders independently for different keys', async () => {
+    const loaderA = vi.fn(async () => 1);
+    const loaderB = vi.fn(async () => 2);
+    const coalescer = new RequestCoalescer<string, number>(1000);
+
+    await expect(
+      Promise.all([
+        coalescer.run('a', loaderA),
+        coalescer.run('b', loaderB),
+      ])
+    ).resolves.toEqual([1, 2]);
+
+    expect(loaderA).toHaveBeenCalledOnce();
+    expect(loaderB).toHaveBeenCalledOnce();
+  });
+
+  it('returns cached value within ttl', async () => {
+    const loader = vi.fn(async () => ({ ok: true }));
+    const coalescer = new RequestCoalescer<string, { ok: boolean }>(1000);
+
+    const first = await coalescer.run('settings', loader);
+    vi.advanceTimersByTime(999);
+    const second = await coalescer.run('settings', loader);
+
+    expect(loader).toHaveBeenCalledTimes(1);
+    expect(second).toBe(first);
+  });
+
+  it('reloads after ttl expires', async () => {
+    const loader = vi
+      .fn<() => Promise<number>>()
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(2);
+    const coalescer = new RequestCoalescer<string, number>(1000);
+
+    await expect(coalescer.run('count', loader)).resolves.toBe(1);
+    vi.advanceTimersByTime(1001);
+    await expect(coalescer.run('count', loader)).resolves.toBe(2);
+
+    expect(loader).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not cache failures', async () => {
+    const loader = vi
+      .fn<() => Promise<string>>()
+      .mockRejectedValueOnce(new Error('boom'))
+      .mockResolvedValueOnce('ok');
+    const coalescer = new RequestCoalescer<string, string>(1000);
+
+    await expect(coalescer.run('job', loader)).rejects.toThrow('boom');
+    await expect(coalescer.run('job', loader)).resolves.toBe('ok');
+
+    expect(loader).toHaveBeenCalledTimes(2);
+  });
+
+  it('shares one rejection across concurrent callers', async () => {
+    const loader = vi.fn(async () => {
+      throw new Error('offline');
+    });
+    const coalescer = new RequestCoalescer<string, string>(1000);
+
+    const a = coalescer.run('api', loader);
+    const b = coalescer.run('api', loader);
+
+    await expect(Promise.allSettled([a, b])).resolves.toEqual([
+      { status: 'rejected', reason: expect.any(Error) },
+      { status: 'rejected', reason: expect.any(Error) },
+    ]);
+    expect(loader).toHaveBeenCalledOnce();
+  });
+
+  it('clear removes cached value for one key', async () => {
+    const loader = vi
+      .fn<() => Promise<number>>()
+      .mockResolvedValueOnce(10)
+      .mockResolvedValueOnce(11);
+    const coalescer = new RequestCoalescer<string, number>(1000);
+
+    await coalescer.run('profile', loader);
+    coalescer.clear('profile');
+    await expect(coalescer.run('profile', loader)).resolves.toBe(11);
+
+    expect(loader).toHaveBeenCalledTimes(2);
+  });
+
+  it('clearAll removes all cached entries', async () => {
+    const loaderA = vi
+      .fn<() => Promise<string>>()
+      .mockResolvedValueOnce('a1')
+      .mockResolvedValueOnce('a2');
+    const loaderB = vi
+      .fn<() => Promise<string>>()
+      .mockResolvedValueOnce('b1')
+      .mockResolvedValueOnce('b2');
+    const coalescer = new RequestCoalescer<string, string>(1000);
+
+    await coalescer.run('a', loaderA);
+    await coalescer.run('b', loaderB);
+    coalescer.clearAll();
+
+    await expect(coalescer.run('a', loaderA)).resolves.toBe('a2');
+    await expect(coalescer.run('b', loaderB)).resolves.toBe('b2');
+  });
+
+  it('ttl of zero only coalesces in-flight work', async () => {
+    const loader = vi
+      .fn<() => Promise<number>>()
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(2);
+    const coalescer = new RequestCoalescer<string, number>(0);
+
+    await expect(coalescer.run('x', loader)).resolves.toBe(1);
+    await expect(coalescer.run('x', loader)).resolves.toBe(2);
+
+    expect(loader).toHaveBeenCalledTimes(2);
+  });
+
+  it('removes in-flight entry after completion so later calls can reload', async () => {
+    let resolveLoader: ((value: number) => void) | undefined;
+    const loader = vi.fn(
+      () =>
+        new Promise<number>((resolve) => {
+          resolveLoader = resolve;
+        })
+    );
+    const coalescer = new RequestCoalescer<string, number>(0);
+
+    const first = coalescer.run('n', loader);
+    const second = coalescer.run('n', loader);
+    expect(loader).toHaveBeenCalledOnce();
+
+    resolveLoader?.(7);
+    await expect(Promise.all([first, second])).resolves.toEqual([7, 7]);
+
+    loader.mockResolvedValueOnce(8);
+    await expect(coalescer.run('n', loader)).resolves.toBe(8);
+    expect(loader).toHaveBeenCalledTimes(2);
+  });
+});
+]==],
+  },
 }
 
 --- Deterministic challenge selection based on date.
