@@ -8829,6 +8829,305 @@ describe('Keyed Request Coalescer', () => {
 });
 ]==],
   },
+  {
+    name = "Skip List",
+    difficulty = "medium",
+    stub = [==[
+/**
+ * Skip List
+ *
+ * Implement a Skip List - a probabilistic data structure that allows O(log n) average
+ * case for search, insertion, and deletion operations. It uses multiple levels of
+ * linked lists, where higher levels act as "express lanes" for faster traversal.
+ *
+ * SkipList class:
+ * - insert(key: number, value?: any): void
+ *   Insert a key-value pair. If key exists, update the value.
+ *
+ * - search(key: number): any | undefined
+ *   Find and return the value for a key, or undefined if not found.
+ *
+ * - delete(key: number): boolean
+ *   Remove a key from the list. Return true if removed, false if not found.
+ *
+ * - getAll(): Array<{ key: number; value: any }>
+ *   Return all entries sorted by key (bottom level traversal).
+ *
+ * - get height(): number
+ *   Return the current maximum level of the skip list.
+ *
+ * Implementation notes:
+ * - Use a coin-flip (random) approach to determine node height
+ * - Probability of level n+1 given level n is typically 0.5
+ * - Maximum level should be bounded (e.g., 16 or 32 for practical sizes)
+ * - The head node has height = maxLevel and points to null at all levels initially
+ */
+
+export class SkipListNode {
+  key: number;
+  value: any;
+  forward: (SkipListNode | null)[];
+
+  constructor(key: number, value: any, level: number) {
+    this.key = key;
+    this.value = value;
+    this.forward = new Array(level + 1).fill(null);
+  }
+}
+
+export class SkipList {
+  private head: SkipListNode;
+  private maxLevel: number;
+  private currentLevel: number;
+
+  constructor(maxLevel = 16) {
+    // YOUR CODE HERE
+    this.maxLevel = maxLevel;
+    this.currentLevel = 0;
+    this.head = new SkipListNode(-Infinity, null, maxLevel);
+  }
+
+  insert(key: number, value: any = null): void {
+    // YOUR CODE HERE
+  }
+
+  search(key: number): any | undefined {
+    // YOUR CODE HERE
+    return undefined;
+  }
+
+  delete(key: number): boolean {
+    // YOUR CODE HERE
+    return false;
+  }
+
+  getAll(): Array<{ key: number; value: any }> {
+    // YOUR CODE HERE
+    return [];
+  }
+
+  get height(): number {
+    // YOUR CODE HERE
+    return this.currentLevel;
+  }
+
+  /**
+   * Helper: Generate random level using coin-flip approach
+   */
+  private randomLevel(): number {
+    // YOUR CODE HERE
+    // Start at 0, flip coin (0.5 probability) to go up each level
+    // Stop when coin is tails or max level reached
+    let level = 0;
+    while (Math.random() < 0.5 && level < this.maxLevel - 1) {
+      level++;
+    }
+    return level;
+  }
+}
+]==],
+    tests = [==[
+import { describe, it, expect } from 'vitest';
+import { SkipList } from './challenge';
+
+describe('Skip List', () => {
+  it('inserts and searches single element', () => {
+    const sl = new SkipList();
+    sl.insert(5, 'five');
+    expect(sl.search(5)).toBe('five');
+  });
+
+  it('returns undefined for missing key', () => {
+    const sl = new SkipList();
+    sl.insert(1, 'one');
+    sl.insert(3, 'three');
+    expect(sl.search(2)).toBeUndefined();
+    expect(sl.search(99)).toBeUndefined();
+  });
+
+  it('updates value for existing key', () => {
+    const sl = new SkipList();
+    sl.insert(10, 'old');
+    sl.insert(10, 'new');
+    expect(sl.search(10)).toBe('new');
+  });
+
+  it('deletes existing key', () => {
+    const sl = new SkipList();
+    sl.insert(5, 'five');
+    expect(sl.delete(5)).toBe(true);
+    expect(sl.search(5)).toBeUndefined();
+  });
+
+  it('delete returns false for non-existent key', () => {
+    const sl = new SkipList();
+    expect(sl.delete(99)).toBe(false);
+  });
+
+  it('inserts multiple elements', () => {
+    const sl = new SkipList();
+    const values = [10, 5, 15, 3, 7, 12, 20];
+    values.forEach(v => sl.insert(v, v * 10));
+    
+    values.forEach(v => {
+      expect(sl.search(v)).toBe(v * 10);
+    });
+  });
+
+  it('getAll returns sorted entries', () => {
+    const sl = new SkipList();
+    const values = [50, 10, 40, 20, 30];
+    values.forEach(v => sl.insert(v, `val-${v}`));
+    
+    const all = sl.getAll();
+    expect(all.map(e => e.key)).toEqual([10, 20, 30, 40, 50]);
+  });
+
+  it('handles duplicate inserts with different values', () => {
+    const sl = new SkipList();
+    sl.insert(5, 'first');
+    sl.insert(5, 'second');
+    sl.insert(5, 'third');
+    
+    expect(sl.search(5)).toBe('third');
+    expect(sl.getAll()).toHaveLength(1);
+  });
+
+  it('deletes from middle and maintains structure', () => {
+    const sl = new SkipList();
+    [1, 2, 3, 4, 5].forEach(v => sl.insert(v, v));
+    
+    sl.delete(3);
+    expect(sl.search(3)).toBeUndefined();
+    expect(sl.search(2)).toBe(2);
+    expect(sl.search(4)).toBe(4);
+    expect(sl.getAll().map(e => e.key)).toEqual([1, 2, 4, 5]);
+  });
+
+  it('deletes from head', () => {
+    const sl = new SkipList();
+    [1, 2, 3].forEach(v => sl.insert(v, v));
+    
+    sl.delete(1);
+    expect(sl.search(1)).toBeUndefined();
+    expect(sl.search(2)).toBe(2);
+  });
+
+  it('deletes from tail', () => {
+    const sl = new SkipList();
+    [1, 2, 3].forEach(v => sl.insert(v, v));
+    
+    sl.delete(3);
+    expect(sl.search(3)).toBeUndefined();
+    expect(sl.search(2)).toBe(2);
+  });
+
+  it('handles negative numbers', () => {
+    const sl = new SkipList();
+    sl.insert(-10, 'neg-10');
+    sl.insert(5, 'five');
+    sl.insert(-5, 'neg-5');
+    
+    expect(sl.search(-10)).toBe('neg-10');
+    expect(sl.search(-5)).toBe('neg-5');
+    expect(sl.getAll().map(e => e.key)).toEqual([-10, -5, 5]);
+  });
+
+  it('handles empty list operations', () => {
+    const sl = new SkipList();
+    expect(sl.getAll()).toEqual([]);
+    expect(sl.height).toBe(0);
+    expect(sl.search(5)).toBeUndefined();
+  });
+
+  it('height grows with more elements (probabilistic)', () => {
+    const sl = new SkipList(16);
+    // Insert many elements, height should likely grow
+    for (let i = 0; i < 100; i++) {
+      sl.insert(i, i);
+    }
+    expect(sl.height).toBeGreaterThan(0);
+    expect(sl.height).toBeLessThanOrEqual(16);
+  });
+
+  it('handles large sequential inserts', () => {
+    const sl = new SkipList();
+    for (let i = 0; i < 1000; i++) {
+      sl.insert(i, `value-${i}`);
+    }
+    
+    // Spot check
+    expect(sl.search(0)).toBe('value-0');
+    expect(sl.search(500)).toBe('value-500');
+    expect(sl.search(999)).toBe('value-999');
+    expect(sl.getAll()).toHaveLength(1000);
+  });
+
+  it('handles interleaved insert and delete', () => {
+    const sl = new SkipList();
+    sl.insert(1, 'a');
+    sl.insert(2, 'b');
+    sl.insert(3, 'c');
+    sl.delete(2);
+    sl.insert(4, 'd');
+    sl.delete(1);
+    sl.insert(5, 'e');
+    
+    expect(sl.search(1)).toBeUndefined();
+    expect(sl.search(2)).toBeUndefined();
+    expect(sl.search(3)).toBe('c');
+    expect(sl.search(4)).toBe('d');
+    expect(sl.search(5)).toBe('e');
+  });
+
+  it('handles descending order inserts', () => {
+    const sl = new SkipList();
+    for (let i = 100; i >= 1; i--) {
+      sl.insert(i, i * 10);
+    }
+    
+    expect(sl.getAll().map(e => e.key)).toEqual(Array.from({ length: 100 }, (_, i) => i + 1));
+  });
+
+  it('stress: random operations maintain consistency', () => {
+    const sl = new SkipList();
+    const set = new Set<number>();
+    
+    // Random inserts
+    for (let i = 0; i < 100; i++) {
+      const key = Math.floor(Math.random() * 200);
+      sl.insert(key, key);
+      set.add(key);
+    }
+    
+    // Verify all present
+    set.forEach(key => {
+      expect(sl.search(key)).toBe(key);
+    });
+    
+    // Random deletes
+    const keys = Array.from(set);
+    for (let i = 0; i < 50; i++) {
+      const key = keys[Math.floor(Math.random() * keys.length)];
+      sl.delete(key);
+      set.delete(key);
+    }
+    
+    // Verify remaining
+    set.forEach(key => {
+      expect(sl.search(key)).toBe(key);
+    });
+    
+    // Verify deletions
+    keys.forEach(key => {
+      if (!set.has(key)) {
+        expect(sl.search(key)).toBeUndefined();
+      }
+    });
+  });
+});
+]==],
+  },
 }
 
 --- Deterministic challenge selection based on date.
