@@ -8830,6 +8830,261 @@ describe('Keyed Request Coalescer', () => {
 ]==],
   },
   {
+    name = "Circular Buffer",
+    difficulty = "medium",
+    stub = [==[
+/**
+ * Circular Buffer (Ring Buffer)
+ *
+ * Implement a fixed-size circular buffer — a data structure that uses a single,
+ * fixed-size buffer as if it were connected end-to-end. When the buffer is full
+ * and new data is written, it overwrites the oldest data.
+ *
+ * This structure is commonly used in:
+ * - Streaming data processing
+ * - Audio/video buffering
+ * - Producer-consumer queues
+ * - Logging systems (fixed-size log buffers)
+ *
+ * CircularBuffer class:
+ * - constructor(capacity: number) — Create buffer with fixed capacity
+ * - write(item: T): boolean — Add item to buffer. Returns false if full (unless overwrite mode).
+ * - read(): T | undefined — Remove and return oldest item. Returns undefined if empty.
+ * - peek(): T | undefined — Return oldest item without removing it.
+ * - overwrite(item: T): void — Add item, overwriting oldest if buffer is full.
+ * - clear(): void — Remove all items.
+ * - get isFull(): boolean — Check if buffer is at capacity.
+ * - get isEmpty(): boolean — Check if buffer has no items.
+ * - get size(): number — Current number of items in buffer.
+ * - get capacity(): number — Maximum capacity of buffer.
+ * - toArray(): T[] — Return items in order (oldest to newest).
+ *
+ * Requirements:
+ * - All operations must be O(1)
+ * - Buffer must reuse memory efficiently (no array shifting)
+ * - Support any type T
+ */
+
+export class CircularBuffer<T> {
+  constructor(capacity: number) {
+    // YOUR CODE HERE
+  }
+
+  write(item: T): boolean {
+    // YOUR CODE HERE
+    return false;
+  }
+
+  read(): T | undefined {
+    // YOUR CODE HERE
+    return undefined;
+  }
+
+  peek(): T | undefined {
+    // YOUR CODE HERE
+    return undefined;
+  }
+
+  overwrite(item: T): void {
+    // YOUR CODE HERE
+  }
+
+  clear(): void {
+    // YOUR CODE HERE
+  }
+
+  get isFull(): boolean {
+    // YOUR CODE HERE
+    return false;
+  }
+
+  get isEmpty(): boolean {
+    // YOUR CODE HERE
+    return false;
+  }
+
+  get size(): number {
+    // YOUR CODE HERE
+    return 0;
+  }
+
+  get capacity(): number {
+    // YOUR CODE HERE
+    return 0;
+  }
+
+  toArray(): T[] {
+    // YOUR CODE HERE
+    return [];
+  }
+}
+]==],
+    tests = [==[
+import { describe, it, expect } from 'vitest';
+import { CircularBuffer } from './challenge';
+
+describe('Circular Buffer', () => {
+  it('starts empty', () => {
+    const cb = new CircularBuffer<number>(5);
+    expect(cb.isEmpty).toBe(true);
+    expect(cb.isFull).toBe(false);
+    expect(cb.size).toBe(0);
+    expect(cb.read()).toBeUndefined();
+  });
+
+  it('writes and reads single item', () => {
+    const cb = new CircularBuffer<string>(3);
+    expect(cb.write('hello')).toBe(true);
+    expect(cb.size).toBe(1);
+    expect(cb.peek()).toBe('hello');
+    expect(cb.read()).toBe('hello');
+    expect(cb.isEmpty).toBe(true);
+  });
+
+  it('maintains FIFO order', () => {
+    const cb = new CircularBuffer<number>(5);
+    cb.write(1);
+    cb.write(2);
+    cb.write(3);
+    expect(cb.read()).toBe(1);
+    expect(cb.read()).toBe(2);
+    expect(cb.read()).toBe(3);
+  });
+
+  it('returns false when writing to full buffer', () => {
+    const cb = new CircularBuffer<number>(2);
+    expect(cb.write(1)).toBe(true);
+    expect(cb.write(2)).toBe(true);
+    expect(cb.write(3)).toBe(false);
+    expect(cb.size).toBe(2);
+  });
+
+  it('correctly reports full status', () => {
+    const cb = new CircularBuffer<number>(3);
+    cb.write(1);
+    cb.write(2);
+    expect(cb.isFull).toBe(false);
+    cb.write(3);
+    expect(cb.isFull).toBe(true);
+  });
+
+  it('overwrites oldest item when full', () => {
+    const cb = new CircularBuffer<number>(3);
+    cb.write(1);
+    cb.write(2);
+    cb.write(3);
+    cb.overwrite(4);
+    expect(cb.read()).toBe(2);
+    expect(cb.read()).toBe(3);
+    expect(cb.read()).toBe(4);
+  });
+
+  it('handles interleaved read and write', () => {
+    const cb = new CircularBuffer<number>(3);
+    cb.write(1);
+    cb.write(2);
+    expect(cb.read()).toBe(1);
+    cb.write(3);
+    cb.write(4);
+    expect(cb.read()).toBe(2);
+    expect(cb.read()).toBe(3);
+    expect(cb.read()).toBe(4);
+  });
+
+  it('clear empties the buffer', () => {
+    const cb = new CircularBuffer<number>(5);
+    cb.write(1);
+    cb.write(2);
+    cb.write(3);
+    cb.clear();
+    expect(cb.isEmpty).toBe(true);
+    expect(cb.size).toBe(0);
+    expect(cb.read()).toBeUndefined();
+  });
+
+  it('toArray returns items in order', () => {
+    const cb = new CircularBuffer<number>(5);
+    cb.write(10);
+    cb.write(20);
+    cb.write(30);
+    expect(cb.toArray()).toEqual([10, 20, 30]);
+  });
+
+  it('toArray after overwrite returns correct order', () => {
+    const cb = new CircularBuffer<number>(3);
+    cb.write(1);
+    cb.write(2);
+    cb.write(3);
+    cb.overwrite(4);
+    cb.overwrite(5);
+    expect(cb.toArray()).toEqual([3, 4, 5]);
+  });
+
+  it('wraps around correctly after many operations', () => {
+    const cb = new CircularBuffer<number>(4);
+    // Fill and drain multiple times to test wrap-around
+    for (let cycle = 0; cycle < 3; cycle++) {
+      cb.write(cycle * 10 + 1);
+      cb.write(cycle * 10 + 2);
+      cb.write(cycle * 10 + 3);
+      cb.write(cycle * 10 + 4);
+      expect(cb.read()).toBe(cycle * 10 + 1);
+      expect(cb.read()).toBe(cycle * 10 + 2);
+      expect(cb.read()).toBe(cycle * 10 + 3);
+      expect(cb.read()).toBe(cycle * 10 + 4);
+    }
+  });
+
+  it('handles objects as items', () => {
+    const cb = new CircularBuffer<{ id: number; name: string }>(2);
+    cb.write({ id: 1, name: 'Alice' });
+    cb.write({ id: 2, name: 'Bob' });
+    expect(cb.read()).toEqual({ id: 1, name: 'Alice' });
+  });
+
+  it('capacity of 1 works correctly', () => {
+    const cb = new CircularBuffer<number>(1);
+    cb.write(42);
+    expect(cb.isFull).toBe(true);
+    cb.overwrite(99);
+    expect(cb.read()).toBe(99);
+  });
+
+  it('peek does not remove item', () => {
+    const cb = new CircularBuffer<number>(3);
+    cb.write(1);
+    cb.write(2);
+    expect(cb.peek()).toBe(1);
+    expect(cb.peek()).toBe(1);
+    expect(cb.size).toBe(2);
+  });
+
+  it('handles string items', () => {
+    const cb = new CircularBuffer<string>(3);
+    cb.write('first');
+    cb.write('second');
+    cb.overwrite('third');
+    expect(cb.toArray()).toEqual(['first', 'second', 'third']);
+  });
+
+  it('stress: many operations', () => {
+    const cb = new CircularBuffer<number>(100);
+    for (let i = 0; i < 1000; i++) {
+      cb.write(i);
+      if (i % 10 === 0) {
+        cb.read();
+      }
+    }
+    expect(cb.size).toBe(100);
+    const arr = cb.toArray();
+    expect(arr[0]).toBe(901);
+    expect(arr[99]).toBe(999);
+  });
+});
+]==],
+  },
+
+  {
     name = "Skip List",
     difficulty = "medium",
     stub = [==[
