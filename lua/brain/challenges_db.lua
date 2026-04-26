@@ -9085,6 +9085,315 @@ describe('Circular Buffer', () => {
   },
 
   {
+    name = "AVL Tree (Self-Balancing BST)",
+    difficulty = "hard",
+    stub = [==[
+/**
+ * AVL Tree (Self-Balancing Binary Search Tree)
+ *
+ * Implement an AVL tree that maintains balance after every insertion and deletion.
+ * In an AVL tree, the height difference between subtrees of any node is at most 1.
+ *
+ * AVLTree class:
+ * - insert(value: number): void — Insert a value, rebalance if needed. O(log n)
+ * - delete(value: number): boolean — Remove a value, rebalance if needed. O(log n)
+ * - search(value: number): boolean — Check if value exists. O(log n)
+ * - getHeight(): number — Return tree height (empty = -1, single node = 0)
+ * - getSize(): number — Return number of nodes
+ * - inOrder(): number[] — Return values in sorted order
+ * - isBalanced(): boolean — Verify AVL property (for testing)
+ *
+ * Bonus: Implement rangeQuery(min, max) to return all values in range [min, max].
+ */
+
+class TreeNode {
+  val: number;
+  left: TreeNode | null = null;
+  right: TreeNode | null = null;
+  height: number = 1;
+
+  constructor(val: number) {
+    this.val = val;
+  }
+}
+
+export class AVLTree {
+  private root: TreeNode | null = null;
+  private nodeCount: number = 0;
+
+  insert(value: number): void {
+    // YOUR CODE HERE
+  }
+
+  delete(value: number): boolean {
+    // YOUR CODE HERE
+    return false;
+  }
+
+  search(value: number): boolean {
+    // YOUR CODE HERE
+    return false;
+  }
+
+  getHeight(): number {
+    // YOUR CODE HERE
+    return -1;
+  }
+
+  getSize(): number {
+    // YOUR CODE HERE
+    return this.nodeCount;
+  }
+
+  inOrder(): number[] {
+    // YOUR CODE HERE
+    return [];
+  }
+
+  isBalanced(): boolean {
+    // YOUR CODE HERE
+    return true;
+  }
+
+  /**
+   * Bonus: Return all values in the range [min, max] (inclusive)
+   */
+  rangeQuery(min: number, max: number): number[] {
+    // YOUR CODE HERE
+    return [];
+  }
+}
+]==],
+    tests = [==[
+import { describe, it, expect } from 'vitest';
+import { AVLTree } from './challenge';
+
+describe('AVL Tree - Basic Operations', () => {
+  it('inserts and searches single value', () => {
+    const tree = new AVLTree();
+    tree.insert(10);
+    expect(tree.search(10)).toBe(true);
+    expect(tree.search(5)).toBe(false);
+  });
+
+  it('maintains BST property', () => {
+    const tree = new AVLTree();
+    [10, 5, 15, 3, 7, 12, 20].forEach(v => tree.insert(v));
+    expect(tree.inOrder()).toEqual([3, 5, 7, 10, 12, 15, 20]);
+  });
+
+  it('handles duplicates', () => {
+    const tree = new AVLTree();
+    tree.insert(5);
+    tree.insert(5);
+    expect(tree.getSize()).toBe(2);
+    expect(tree.inOrder()).toEqual([5, 5]);
+  });
+
+  it('empty tree properties', () => {
+    const tree = new AVLTree();
+    expect(tree.getHeight()).toBe(-1);
+    expect(tree.getSize()).toBe(0);
+    expect(tree.inOrder()).toEqual([]);
+    expect(tree.isBalanced()).toBe(true);
+  });
+
+  it('single node height', () => {
+    const tree = new AVLTree();
+    tree.insert(42);
+    expect(tree.getHeight()).toBe(0);
+    expect(tree.isBalanced()).toBe(true);
+  });
+});
+
+describe('AVL Tree - Balancing', () => {
+  it('performs right rotation (LL case)', () => {
+    const tree = new AVLTree();
+    // Insert in descending order to trigger LL imbalance
+    [30, 20, 10].forEach(v => tree.insert(v));
+    expect(tree.isBalanced()).toBe(true);
+    expect(tree.getHeight()).toBe(1);
+    expect(tree.inOrder()).toEqual([10, 20, 30]);
+  });
+
+  it('performs left rotation (RR case)', () => {
+    const tree = new AVLTree();
+    // Insert in ascending order to trigger RR imbalance
+    [10, 20, 30].forEach(v => tree.insert(v));
+    expect(tree.isBalanced()).toBe(true);
+    expect(tree.getHeight()).toBe(1);
+    expect(tree.inOrder()).toEqual([10, 20, 30]);
+  });
+
+  it('performs left-right rotation (LR case)', () => {
+    const tree = new AVLTree();
+    // 30, 10, 20 pattern triggers LR rotation
+    [30, 10, 20].forEach(v => tree.insert(v));
+    expect(tree.isBalanced()).toBe(true);
+    expect(tree.inOrder()).toEqual([10, 20, 30]);
+  });
+
+  it('performs right-left rotation (RL case)', () => {
+    const tree = new AVLTree();
+    // 10, 30, 20 pattern triggers RL rotation
+    [10, 30, 20].forEach(v => tree.insert(v));
+    expect(tree.isBalanced()).toBe(true);
+    expect(tree.inOrder()).toEqual([10, 20, 30]);
+  });
+
+  it('maintains balance with many insertions', () => {
+    const tree = new AVLTree();
+    // Insert 1-100 in order (worst case for unbalanced tree)
+    for (let i = 1; i <= 100; i++) {
+      tree.insert(i);
+    }
+    expect(tree.isBalanced()).toBe(true);
+    expect(tree.getHeight()).toBeLessThan(10); // Should be ~6-7 for balanced
+    expect(tree.getSize()).toBe(100);
+  });
+
+  it('maintains balance with reverse order insertions', () => {
+    const tree = new AVLTree();
+    for (let i = 100; i >= 1; i--) {
+      tree.insert(i);
+    }
+    expect(tree.isBalanced()).toBe(true);
+    expect(tree.getHeight()).toBeLessThan(10);
+  });
+});
+
+describe('AVL Tree - Deletion', () => {
+  it('deletes leaf node', () => {
+    const tree = new AVLTree();
+    [10, 5, 15].forEach(v => tree.insert(v));
+    expect(tree.delete(5)).toBe(true);
+    expect(tree.search(5)).toBe(false);
+    expect(tree.isBalanced()).toBe(true);
+    expect(tree.inOrder()).toEqual([10, 15]);
+  });
+
+  it('deletes node with one child', () => {
+    const tree = new AVLTree();
+    [10, 5, 15, 12].forEach(v => tree.insert(v));
+    expect(tree.delete(15)).toBe(true);
+    expect(tree.search(15)).toBe(false);
+    expect(tree.isBalanced()).toBe(true);
+    expect(tree.inOrder()).toEqual([5, 10, 12]);
+  });
+
+  it('deletes node with two children', () => {
+    const tree = new AVLTree();
+    [10, 5, 15, 3, 7, 12, 20].forEach(v => tree.insert(v));
+    expect(tree.delete(10)).toBe(true);
+    expect(tree.search(10)).toBe(false);
+    expect(tree.isBalanced()).toBe(true);
+    expect(tree.inOrder()).toEqual([3, 5, 7, 12, 15, 20]);
+  });
+
+  it('returns false when deleting non-existent', () => {
+    const tree = new AVLTree();
+    tree.insert(10);
+    expect(tree.delete(99)).toBe(false);
+    expect(tree.getSize()).toBe(1);
+  });
+
+  it('deletes root until empty', () => {
+    const tree = new AVLTree();
+    tree.insert(10);
+    tree.insert(5);
+    tree.insert(15);
+    tree.delete(10);
+    tree.delete(5);
+    tree.delete(15);
+    expect(tree.getSize()).toBe(0);
+    expect(tree.isBalanced()).toBe(true);
+  });
+
+  it('rebalances after deletion', () => {
+    const tree = new AVLTree();
+    // Create tree:       20
+    //                   /  \
+    //                 10    30
+    //                /     /
+    //               5     25
+    [20, 10, 30, 5, 25].forEach(v => tree.insert(v));
+    tree.delete(30);
+    expect(tree.isBalanced()).toBe(true);
+  });
+});
+
+describe('AVL Tree - Range Query (Bonus)', () => {
+  it('returns values in range', () => {
+    const tree = new AVLTree();
+    [10, 5, 15, 3, 7, 12, 20].forEach(v => tree.insert(v));
+    expect(tree.rangeQuery(5, 15)).toEqual([5, 7, 10, 12, 15]);
+  });
+
+  it('range with no matches returns empty', () => {
+    const tree = new AVLTree();
+    [1, 2, 3].forEach(v => tree.insert(v));
+    expect(tree.rangeQuery(10, 20)).toEqual([]);
+  });
+
+  it('range covers entire tree', () => {
+    const tree = new AVLTree();
+    [5, 3, 7].forEach(v => tree.insert(v));
+    expect(tree.rangeQuery(0, 10)).toEqual([3, 5, 7]);
+  });
+
+  it('range query with duplicates', () => {
+    const tree = new AVLTree();
+    tree.insert(5);
+    tree.insert(5);
+    tree.insert(5);
+    expect(tree.rangeQuery(5, 5)).toEqual([5, 5, 5]);
+  });
+});
+
+describe('AVL Tree - Stress Tests', () => {
+  it('handles 1000 sequential insertions', () => {
+    const tree = new AVLTree();
+    for (let i = 0; i < 1000; i++) {
+      tree.insert(i);
+    }
+    expect(tree.isBalanced()).toBe(true);
+    expect(tree.getSize()).toBe(1000);
+    // Height should be O(log n) ~ 10
+    expect(tree.getHeight()).toBeLessThan(15);
+  });
+
+  it('handles 1000 random insertions', () => {
+    const tree = new AVLTree();
+    const values = Array.from({ length: 1000 }, () => Math.floor(Math.random() * 10000));
+    values.forEach(v => tree.insert(v));
+    expect(tree.isBalanced()).toBe(true);
+  });
+
+  it('alternating insert and delete maintains balance', () => {
+    const tree = new AVLTree();
+    for (let i = 0; i < 100; i++) {
+      tree.insert(i);
+    }
+    for (let i = 0; i < 50; i++) {
+      tree.delete(i);
+    }
+    expect(tree.isBalanced()).toBe(true);
+    expect(tree.getSize()).toBe(50);
+  });
+
+  it('maintains sorted order after many operations', () => {
+    const tree = new AVLTree();
+    const ops = [50, 30, 70, 20, 40, 60, 80, 10, 25, 35, 45];
+    ops.forEach(v => tree.insert(v));
+    tree.delete(30);
+    tree.delete(70);
+    tree.insert(55);
+    expect(tree.inOrder()).toEqual([10, 20, 25, 35, 40, 45, 50, 55, 60, 80]);
+  });
+});
+]==],
+  },
+  {
     name = "Skip List",
     difficulty = "medium",
     stub = [==[
