@@ -9692,6 +9692,235 @@ describe('Skip List', () => {
 });
 ]==],
   },
+
+  {
+    name = "Promise Pool",
+    difficulty = "medium",
+    stub = [==[
+/**
+ * Promise Pool
+ *
+ * Implement a function that runs an array of async tasks with a concurrency limit,
+ * similar to Promise.all() but with controlled parallelism.
+ *
+ * promisePool(tasks, concurrency):
+ * - tasks: array of functions that return promises (or values)
+ * - concurrency: max number of tasks running at once
+ * - Returns a promise that resolves with an array of results in the same order as tasks
+ *
+ * Unlike AsyncScheduler (which queues tasks as they arrive), promisePool receives
+ * all tasks upfront and manages their execution with limited concurrency.
+ *
+ * Requirements:
+ * - Tasks execute with at most `concurrency` running simultaneously
+ * - Results must be in the same order as the input tasks array
+ * - If any task rejects, the entire pool rejects immediately with that error
+ *   (other running tasks continue but their results are discarded)
+ *
+ * Bonus: Implement promisePoolSettled which never rejects — instead returns
+ * an array of { status: 'fulfilled' | 'rejected', value?: any, reason?: any }
+ */
+
+export function promisePool<T>(
+  tasks: (() => T | Promise<T>)[],
+  concurrency: number
+): Promise<T[]> {
+  // YOUR CODE HERE
+  return Promise.resolve([]);
+}
+
+export type PoolSettledResult<T> =
+  | { status: 'fulfilled'; value: T }
+  | { status: 'rejected'; reason: any };
+
+export function promisePoolSettled<T>(
+  tasks: (() => T | Promise<T>)[],
+  concurrency: number
+): Promise<PoolSettledResult<T>[]> {
+  // YOUR CODE HERE
+  return Promise.resolve([]);
+}
+]==],
+    tests = [==[
+import { describe, it, expect, vi } from 'vitest';
+import { promisePool, promisePoolSettled } from './challenge';
+
+describe('Promise Pool', () => {
+  const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
+
+  it('executes all tasks', async () => {
+    const tasks = [
+      () => Promise.resolve(1),
+      () => Promise.resolve(2),
+      () => Promise.resolve(3),
+    ];
+    const results = await promisePool(tasks, 2);
+    expect(results).toEqual([1, 2, 3]);
+  });
+
+  it('maintains result order', async () => {
+    const tasks = [
+      () => delay(30).then(() => 'a'),
+      () => delay(10).then(() => 'b'),
+      () => delay(20).then(() => 'c'),
+    ];
+    const results = await promisePool(tasks, 3);
+    expect(results).toEqual(['a', 'b', 'c']);
+  });
+
+  it('respects concurrency limit', async () => {
+    let running = 0;
+    let maxRunning = 0;
+
+    const tasks = Array.from({ length: 10 }, () => async () => {
+      running++;
+      maxRunning = Math.max(maxRunning, running);
+      await delay(20);
+      running--;
+      return 'done';
+    });
+
+    await promisePool(tasks, 3);
+    expect(maxRunning).toBe(3);
+  });
+
+  it('handles synchronous tasks', async () => {
+    const tasks = [
+      () => 1,
+      () => 2,
+      () => 3,
+    ];
+    const results = await promisePool(tasks, 2);
+    expect(results).toEqual([1, 2, 3]);
+  });
+
+  it('rejects immediately on first error', async () => {
+    const tasks = [
+      () => delay(20).then(() => 'ok'),
+      () => delay(10).then(() => { throw new Error('fail'); }),
+      () => delay(30).then(() => 'never'),
+    ];
+    await expect(promisePool(tasks, 2)).rejects.toThrow('fail');
+  });
+
+  it('empty tasks array resolves to empty array', async () => {
+    const results = await promisePool([], 5);
+    expect(results).toEqual([]);
+  });
+
+  it('concurrency of 1 runs sequentially', async () => {
+    const order: number[] = [];
+    const tasks = [
+      async () => { order.push(1); await delay(10); return 1; },
+      async () => { order.push(2); await delay(5); return 2; },
+      async () => { order.push(3); await delay(1); return 3; },
+    ];
+    await promisePool(tasks, 1);
+    expect(order).toEqual([1, 2, 3]);
+  });
+
+  it('high concurrency runs all at once', async () => {
+    let running = 0;
+    let maxRunning = 0;
+
+    const tasks = Array.from({ length: 20 }, () => async () => {
+      running++;
+      maxRunning = Math.max(maxRunning, running);
+      await delay(10);
+      running--;
+      return 'x';
+    });
+
+    await promisePool(tasks, 100);
+    expect(maxRunning).toBe(20);
+  });
+
+  it('handles mixed sync and async', async () => {
+    const tasks = [
+      () => 1,
+      () => Promise.resolve(2),
+      () => 3,
+      async () => { await delay(5); return 4; },
+    ];
+    const results = await promisePool(tasks, 2);
+    expect(results).toEqual([1, 2, 3, 4]);
+  });
+
+  it('error message includes the original error', async () => {
+    const customError = new Error('custom error message');
+    const tasks = [
+      () => Promise.resolve(1),
+      () => Promise.reject(customError),
+    ];
+    await expect(promisePool(tasks, 2)).rejects.toBe(customError);
+  });
+});
+
+describe('Promise Pool Settled', () => {
+  const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
+
+  it('never rejects, returns settled results', async () => {
+    const tasks = [
+      () => Promise.resolve(1),
+      () => Promise.reject(new Error('fail')),
+      () => Promise.resolve(3),
+    ];
+    const results = await promisePoolSettled(tasks, 2);
+    expect(results).toEqual([
+      { status: 'fulfilled', value: 1 },
+      { status: 'rejected', reason: expect.any(Error) },
+      { status: 'fulfilled', value: 3 },
+    ]);
+  });
+
+  it('all fulfilled', async () => {
+    const tasks = [() => 1, () => 2, () => 3];
+    const results = await promisePoolSettled(tasks, 2);
+    expect(results.every(r => r.status === 'fulfilled')).toBe(true);
+    expect(results.map(r => (r as any).value)).toEqual([1, 2, 3]);
+  });
+
+  it('all rejected', async () => {
+    const tasks = [
+      () => Promise.reject('a'),
+      () => Promise.reject('b'),
+    ];
+    const results = await promisePoolSettled(tasks, 1);
+    expect(results.every(r => r.status === 'rejected')).toBe(true);
+  });
+
+  it('maintains order with mixed results', async () => {
+    const tasks = [
+      () => delay(30).then(() => 'a'),
+      () => delay(10).then(() => { throw new Error('b'); }),
+      () => delay(20).then(() => 'c'),
+    ];
+    const results = await promisePoolSettled(tasks, 3);
+    expect(results[0]).toEqual({ status: 'fulfilled', value: 'a' });
+    expect(results[1].status).toBe('rejected');
+    expect(results[2]).toEqual({ status: 'fulfilled', value: 'c' });
+  });
+
+  it('empty tasks array', async () => {
+    const results = await promisePoolSettled([], 5);
+    expect(results).toEqual([]);
+  });
+
+  it('stress: many tasks with some failures', async () => {
+    const tasks = Array.from({ length: 100 }, (_, i) => () => {
+      if (i % 7 === 0) return Promise.reject(new Error(`fail ${i}`));
+      return Promise.resolve(i);
+    });
+    const results = await promisePoolSettled(tasks, 10);
+    expect(results.length).toBe(100);
+    const fulfilled = results.filter(r => r.status === 'fulfilled').length;
+    const rejected = results.filter(r => r.status === 'rejected').length;
+    expect(fulfilled).toBe(86);
+    expect(rejected).toBe(14);
+  });
+});
+]==],
+  },
 }
 
 --- Deterministic challenge selection based on date.
