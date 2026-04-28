@@ -3589,6 +3589,172 @@ describe('TextEditor', () => {
   },
 
   {
+    name = "Valid Parentheses",
+    difficulty = "easy",
+    stub = [==[
+/**
+ * Valid Parentheses
+ *
+ * Given a string containing just the characters '(', ')', '{', '}', '[' and ']',
+ * determine if the input string is valid.
+ *
+ * An input string is valid if:
+ * 1. Open brackets must be closed by the same type of brackets.
+ * 2. Open brackets must be closed in the correct order.
+ * 3. Every close bracket has a corresponding open bracket of the same type.
+ *
+ * Examples:
+ *   "()" => true
+ *   "()[]{}" => true
+ *   "(]" => false
+ *   "([)]" => false
+ *   "{[]}" => true
+ *
+ * Bonus: Implement longestValidParentheses that returns the length of the
+ * longest valid parentheses substring.
+ */
+
+export function isValid(s: string): boolean {
+  // YOUR CODE HERE
+  return false;
+}
+
+/**
+ * Bonus: Return the length of the longest valid parentheses substring.
+ * Example: "(()" => 2, ")()())" => 4
+ */
+export function longestValidParentheses(s: string): number {
+  // YOUR CODE HERE
+  return 0;
+}
+]==],
+    tests = [==[
+import { describe, it, expect } from 'vitest';
+import { isValid, longestValidParentheses } from './challenge';
+
+describe('Valid Parentheses', () => {
+  it('empty string is valid', () => {
+    expect(isValid('')).toBe(true);
+  });
+
+  it('single pair of parentheses', () => {
+    expect(isValid('()')).toBe(true);
+    expect(isValid('[]')).toBe(true);
+    expect(isValid('{}')).toBe(true);
+  });
+
+  it('multiple pairs', () => {
+    expect(isValid('()[]{}')).toBe(true);
+    expect(isValid('{[()]}')).toBe(true);
+  });
+
+  it('nested pairs', () => {
+    expect(isValid('({[]})')).toBe(true);
+    expect(isValid('((()))')).toBe(true);
+  });
+
+  it('mismatched brackets', () => {
+    expect(isValid('(]')).toBe(false);
+    expect(isValid('([)]')).toBe(false);
+    expect(isValid('{[(])}')).toBe(false);
+  });
+
+  it('unclosed brackets', () => {
+    expect(isValid('(')).toBe(false);
+    expect(isValid('[{')).toBe(false);
+    expect(isValid('(()')).toBe(false);
+  });
+
+  it('extra closing brackets', () => {
+    expect(isValid(')')).toBe(false);
+    expect(isValid('()]')).toBe(false);
+    expect(isValid('({})}')).toBe(false);
+  });
+
+  it('only opening brackets', () => {
+    expect(isValid('((((')).toBe(false);
+    expect(isValid('[[[[')).toBe(false);
+  });
+
+  it('only closing brackets', () => {
+    expect(isValid('))))')).toBe(false);
+    expect(isValid(']]]]')).toBe(false);
+  });
+
+  it('complex valid string', () => {
+    expect(isValid('{[()()][{}]}{}')).toBe(true);
+  });
+
+  it('complex invalid string', () => {
+    expect(isValid('{[()()][{}}}{}')).toBe(false);
+  });
+
+  it('long valid string', () => {
+    const s = '()'.repeat(1000);
+    expect(isValid(s)).toBe(true);
+  });
+
+  it('long invalid string', () => {
+    const s = '(' + '()'.repeat(999);
+    expect(isValid(s)).toBe(false);
+  });
+});
+
+describe('Longest Valid Parentheses', () => {
+  it('empty string', () => {
+    expect(longestValidParentheses('')).toBe(0);
+  });
+
+  it('simple valid pairs', () => {
+    expect(longestValidParentheses('()')).toBe(2);
+    expect(longestValidParentheses('()()')).toBe(4);
+  });
+
+  it('nested valid pairs', () => {
+    expect(longestValidParentheses('(())')).toBe(4);
+    expect(longestValidParentheses('((()))')).toBe(6);
+  });
+
+  it('with extra opening', () => {
+    expect(longestValidParentheses('(()')).toBe(2);
+    expect(longestValidParentheses('((()')).toBe(2);
+  });
+
+  it('with extra closing', () => {
+    expect(longestValidParentheses('())')).toBe(2);
+    expect(longestValidParentheses(')()())')).toBe(4);
+  });
+
+  it('multiple valid sections', () => {
+    expect(longestValidParentheses('()(()')).toBe(2);
+    expect(longestValidParentheses('()()()')).toBe(6);
+  });
+
+  it('starts with closing', () => {
+    expect(longestValidParentheses(')()())')).toBe(4);
+    expect(longestValidParentheses(')()())()()(')).toBe(4);
+  });
+
+  it('all opening', () => {
+    expect(longestValidParentheses('((((')).toBe(0);
+  });
+
+  it('all closing', () => {
+    expect(longestValidParentheses('))))')).toBe(0);
+  });
+
+  it('alternating invalid', () => {
+    expect(longestValidParentheses(')()(')).toBe(2);
+  });
+
+  it('stress: long string', () => {
+    const s = '(' + '()'.repeat(500) + ')';
+    expect(longestValidParentheses(s)).toBe(1002);
+  });
+});
+]==],
+  },
+  {
     name = "Graph Shortest Path (Dijkstra)",
     difficulty = "hard",
     stub = [==[
