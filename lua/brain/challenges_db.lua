@@ -10087,6 +10087,156 @@ describe('Promise Pool Settled', () => {
 });
 ]==],
   },
+
+  {
+    name = "Wildcard Pattern Matching",
+    difficulty = "medium",
+    stub = [==[
+/**
+ * Wildcard Pattern Matching
+ *
+ * Implement wildcard pattern matching with support for '?' and '*'.
+ *
+ * '?' matches any single character.
+ * '*' matches any sequence of characters (including the empty sequence).
+ *
+ * The matching should cover the entire input string (not partial).
+ *
+ * Examples:
+ *   isMatch("aa", "a") → false
+ *   isMatch("aa", "*") → true
+ *   isMatch("cb", "?a") → false
+ *   isMatch("adceb", "*a*b") → true
+ *   isMatch("acdcb", "a*c?b") → false
+ *
+ * Bonus: Implement glob(patterns: string[], text: string): string[]
+ * that returns all patterns that match the given text.
+ */
+
+export function isMatch(s: string, p: string): boolean {
+  // YOUR CODE HERE
+  return false;
+}
+
+/**
+ * Bonus: Find all patterns that match the given text.
+ */
+export function glob(patterns: string[], text: string): string[] {
+  // YOUR CODE HERE
+  return [];
+}
+]==],
+    tests = [==[
+import { describe, it, expect } from 'vitest';
+import { isMatch, glob } from './challenge';
+
+describe('Wildcard Pattern Matching', () => {
+  it('exact match without wildcards', () => {
+    expect(isMatch('abc', 'abc')).toBe(true);
+    expect(isMatch('abc', 'def')).toBe(false);
+  });
+
+  it('single character wildcard', () => {
+    expect(isMatch('abc', 'a?c')).toBe(true);
+    expect(isMatch('abc', '?bc')).toBe(true);
+    expect(isMatch('abc', 'ab?')).toBe(true);
+    expect(isMatch('abc', 'a?d')).toBe(false);
+  });
+
+  it('star matches any sequence', () => {
+    expect(isMatch('abc', '*')).toBe(true);
+    expect(isMatch('abc', 'a*')).toBe(true);
+    expect(isMatch('abc', '*c')).toBe(true);
+    expect(isMatch('abc', 'a*c')).toBe(true);
+    expect(isMatch('abc', '*b*')).toBe(true);
+  });
+
+  it('star matches empty sequence', () => {
+    expect(isMatch('', '*')).toBe(true);
+    expect(isMatch('abc', 'abc*')).toBe(true);
+    expect(isMatch('abc', '*abc')).toBe(true);
+    expect(isMatch('abc', '*a*b*c*')).toBe(true);
+  });
+
+  it('multiple question marks', () => {
+    expect(isMatch('abc', '???')).toBe(true);
+    expect(isMatch('abc', '??')).toBe(false);
+    expect(isMatch('abc', '????')).toBe(false);
+  });
+
+  it('complex patterns', () => {
+    expect(isMatch('adceb', '*a*b')).toBe(true);
+    expect(isMatch('acdcb', 'a*c?b')).toBe(false);
+    expect(isMatch('hello world', 'h*o*ld')).toBe(true);
+    expect(isMatch('mississippi', 'm*iss*iss*ippi')).toBe(true);
+  });
+
+  it('empty string patterns', () => {
+    expect(isMatch('', '')).toBe(true);
+    expect(isMatch('a', '')).toBe(false);
+    expect(isMatch('', '?')).toBe(false);
+    expect(isMatch('', '*')).toBe(true);
+  });
+
+  it('consecutive stars', () => {
+    expect(isMatch('abc', '**')).toBe(true);
+    expect(isMatch('abc', 'a**c')).toBe(true);
+    expect(isMatch('abc', '***abc***')).toBe(true);
+  });
+
+  it('pattern longer than string', () => {
+    expect(isMatch('a', '??')).toBe(false);
+    expect(isMatch('a', 'a?')).toBe(false);
+  });
+
+  it('case sensitivity', () => {
+    expect(isMatch('Hello', 'hello')).toBe(false);
+    expect(isMatch('HELLO', 'H*O')).toBe(true);
+  });
+
+  it('unicode characters', () => {
+    expect(isMatch('hello世界', 'hello??')).toBe(true);
+    expect(isMatch('🎯', '?')).toBe(true);
+    expect(isMatch('🎯🎲', '??')).toBe(true);
+  });
+
+  it('stress: long string with many stars', () => {
+    const s = 'a'.repeat(1000);
+    const p = '*' + 'a*'.repeat(500);
+    expect(isMatch(s, p)).toBe(true);
+  });
+
+  it('stress: alternating pattern', () => {
+    const s = 'ababababab';
+    const p = 'a*b*a*b*a*';
+    expect(isMatch(s, p)).toBe(true);
+  });
+});
+
+describe('glob (Bonus)', () => {
+  it('finds matching patterns', () => {
+    const patterns = ['*.js', '*.ts', 'test.*', 'README.md'];
+    expect(glob(patterns, 'app.js')).toContain('*.js');
+    expect(glob(patterns, 'app.ts')).toContain('*.ts');
+    expect(glob(patterns, 'test.spec')).toContain('test.*');
+    expect(glob(patterns, 'README.md')).toContain('README.md');
+  });
+
+  it('returns empty array for no matches', () => {
+    expect(glob(['*.js', '*.ts'], 'image.png')).toEqual([]);
+  });
+
+  it('returns multiple matches', () => {
+    const patterns = ['*', '*.js', 'app.*', 'app.js'];
+    expect(glob(patterns, 'app.js')).toEqual(['*', '*.js', 'app.*', 'app.js']);
+  });
+
+  it('handles empty pattern list', () => {
+    expect(glob([], 'text.txt')).toEqual([]);
+  });
+});
+]==],
+  },
 }
 
 --- Deterministic challenge selection based on date.
